@@ -1,0 +1,543 @@
+@import "tailwindcss";
+
+:root {
+  --u: min(calc(100vw / 1600), calc(100vh / 900));
+  --ink: #16191f;
+  --mid: #737b86;
+  --dim: #a4adb8;
+  --line: #e6ebf0;
+  --ice: #e9f0f7;
+  --rail: #f3f6fa;
+}
+
+@media (max-width: 820px) {
+  :root {
+    --u: 1px;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  background: #ffffff;
+  color: var(--ink);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Neutralize hover transform lifts on touchscreen devices to prevent button jumping on tap */
+@media (hover: none) {
+  button:hover,
+  a:hover,
+  article:hover,
+  .hover\:-translate-y-0\.5:hover,
+  .hover\:-translate-y-1:hover {
+    transform: none !important;
+  }
+}
+
+/* Hide scrollbars for slick horizontal scroll chips/tabs while preserving touch scroll */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.wide {
+  font-family: 'Michroma', sans-serif;
+  text-transform: uppercase;
+}
+
+/* Exact AUREVÉ Runway Lookbook Layout & Scoping */
+.mv-runway-lock {
+  height: 100svh;
+  min-height: 520px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: #fff;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+.mv-header {
+  position: relative;
+  z-index: 40;
+  background: #fff;
+  padding: calc(20 * var(--u)) calc(46 * var(--u)) calc(15 * var(--u));
+  border-bottom: 1px solid #eef2f6;
+}
+
+.mv-header.runway-mode {
+  border-bottom: 0;
+}
+
+.mv-r1 {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.mv-brand {
+  font-size: calc(15.5 * var(--u));
+  letter-spacing: 0.2em;
+  white-space: nowrap;
+}
+
+.mv-tabs {
+  display: flex;
+  gap: calc(48 * var(--u));
+  font-size: calc(14.5 * var(--u));
+  letter-spacing: 0.14em;
+  color: var(--dim);
+}
+
+.mv-tabs a {
+  transition: color 0.25s;
+  white-space: nowrap;
+}
+
+.mv-tabs a:hover,
+.mv-tabs .on {
+  color: var(--ink);
+}
+
+.mv-acct {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: calc(22 * var(--u));
+  font-size: calc(9.5 * var(--u));
+  letter-spacing: 0.12em;
+}
+
+.mv-acct svg {
+  width: calc(17 * var(--u));
+  height: calc(17 * var(--u));
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.mv-r2 {
+  display: flex;
+  justify-content: center;
+  gap: calc(60 * var(--u));
+  margin-top: calc(17 * var(--u));
+  font-size: calc(9.5 * var(--u));
+  letter-spacing: 0.14em;
+}
+
+.mv-r2 a {
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.mv-r2 a:hover,
+.mv-r2 a.on {
+  color: var(--mid);
+}
+
+/* Runway Stage & Product Rail */
+.mv-runway-main {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr calc(372 * var(--u));
+  min-height: 0;
+}
+
+.mv-stage {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: none;
+  outline: none;
+  background: linear-gradient(transparent 60%, rgba(255, 255, 255, 0.72) 100%),
+    linear-gradient(90deg, #f1f5fa 0%, #e7eff6 38%, #eef4f9 62%, #f6f9fc 100%);
+}
+
+.mv-line {
+  position: absolute;
+  inset: 0;
+}
+
+.mv-model {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform, filter;
+  cursor: none;
+}
+
+.mv-model svg {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.mv-model::before {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -1.6%;
+  height: 3.6%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(70, 85, 105, 0.24), transparent);
+}
+
+.mv-intro {
+  position: absolute;
+  z-index: 2;
+  left: calc(46 * var(--u));
+  top: calc(36 * var(--u));
+  width: calc(390 * var(--u));
+  pointer-events: none;
+}
+
+.mv-intro h2 {
+  font-weight: 400;
+  font-size: calc(22 * var(--u));
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+}
+
+.mv-intro p {
+  margin-top: calc(16 * var(--u));
+  font-size: calc(14 * var(--u));
+  line-height: 1.62;
+  letter-spacing: 0.012em;
+  color: var(--mid);
+}
+
+.mv-tag {
+  position: absolute;
+  z-index: 2;
+  left: calc(46 * var(--u));
+  bottom: calc(44 * var(--u));
+}
+
+.mv-look {
+  display: flex;
+  font-size: calc(29 * var(--u));
+  line-height: calc(38 * var(--u));
+  letter-spacing: 0.14em;
+  gap: 0.5em;
+  pointer-events: none;
+}
+
+.mv-win {
+  height: calc(38 * var(--u));
+  overflow: hidden;
+}
+
+.mv-roll {
+  display: block;
+  will-change: transform;
+}
+
+.mv-roll b {
+  display: block;
+  font-weight: 400;
+  height: calc(38 * var(--u));
+}
+
+.mv-shop-link {
+  display: inline-block;
+  margin-top: calc(13 * var(--u));
+  font-size: calc(9.5 * var(--u));
+  letter-spacing: 0.14em;
+  padding-bottom: calc(4 * var(--u));
+  border-bottom: 1px solid currentColor;
+  cursor: pointer;
+}
+
+.mv-ring {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  top: 0;
+  width: calc(46 * var(--u));
+  height: calc(46 * var(--u));
+  margin: calc(-23 * var(--u)) 0 0 calc(-23 * var(--u));
+  border: calc(2.5 * var(--u)) solid #16191f;
+  border-radius: 99px;
+  pointer-events: none;
+  opacity: 0;
+  transition: width 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+    margin 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.2s;
+}
+
+.mv-ring.show {
+  opacity: 1;
+}
+
+.mv-ring.drag {
+  width: calc(84 * var(--u));
+  height: calc(34 * var(--u));
+  margin: calc(-17 * var(--u)) 0 0 calc(-42 * var(--u));
+}
+
+.mv-rail {
+  position: relative;
+  overflow: hidden;
+  background: #f3f6fa;
+  min-height: 0;
+}
+
+.mv-rail-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: calc(18 * var(--u)) calc(24 * var(--u)) calc(18 * var(--u));
+  will-change: transform;
+  background: #f3f6fa;
+}
+
+.mv-rail-card.alt {
+  background: #fff;
+}
+
+.mv-fav {
+  position: absolute;
+  left: calc(22 * var(--u));
+  top: calc(18 * var(--u));
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+  z-index: 2;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.mv-fav svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  transition: fill 0.2s;
+}
+
+.mv-fav[aria-pressed='true'] svg {
+  fill: #d8a7a0;
+  stroke: #b98179;
+}
+
+.mv-shot {
+  flex: 1;
+  min-height: 0;
+  display: block;
+  cursor: pointer;
+}
+
+.mv-shot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mv-meta {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  margin-top: calc(8 * var(--u));
+}
+
+.mv-meta h3 {
+  font-weight: 400;
+  font-size: calc(9.5 * var(--u));
+  letter-spacing: 0.14em;
+}
+
+.mv-meta span {
+  display: block;
+  grid-column: 1;
+  margin-top: calc(6 * var(--u));
+  font-size: calc(12.5 * var(--u));
+  color: var(--mid);
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.mv-add {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  width: calc(26 * var(--u));
+  height: calc(26 * var(--u));
+  position: relative;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.mv-add::before,
+.mv-add::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(15 * var(--u));
+  height: 1.5px;
+  margin: -0.75px 0 0 calc(-7.5 * var(--u));
+  background: var(--ink);
+}
+
+.mv-add::after {
+  transform: rotate(90deg);
+}
+
+.mv-add:hover {
+  transform: rotate(90deg);
+}
+
+.mv-wait {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #f1f5fa;
+  transition: opacity 0.5s;
+  pointer-events: none;
+}
+
+.mv-wait.gone {
+  opacity: 0;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+@media (max-width: 820px) {
+  .mv-header {
+    padding: 14px 16px 12px;
+  }
+  .mv-r1 {
+    grid-template-columns: 1fr auto;
+  }
+  .mv-tabs,
+  .mv-r2,
+  .mv-acct > .mv-hide-mobile {
+    display: none;
+  }
+  .mv-brand {
+    font-size: 14px;
+  }
+  .mv-runway-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 190px;
+  }
+  .mv-stage,
+  .mv-model {
+    cursor: auto;
+  }
+  .mv-ring {
+    display: none;
+  }
+  .mv-intro {
+    left: 16px;
+    top: 18px;
+    width: calc(100% - 32px);
+  }
+  .mv-intro h2 {
+    font-size: 17px;
+  }
+  .mv-intro p {
+    display: none;
+  }
+  .mv-tag {
+    left: 16px;
+    bottom: 18px;
+  }
+  .mv-look {
+    font-size: 22px;
+    line-height: 30px;
+  }
+  .mv-win,
+  .mv-roll b {
+    height: 30px;
+  }
+  .mv-rail-card {
+    width: 160px;
+    height: 100%;
+    padding: 12px;
+  }
+  .mv-fav {
+    left: 8px;
+    top: 8px;
+    width: 28px;
+    height: 28px;
+    padding: 3px;
+  }
+  .mv-add {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Tablet refinements between 821px and 1100px so header items never overflow or wrap awkwardly */
+@media (min-width: 821px) and (max-width: 1100px) {
+  .mv-header {
+    padding: 16px 24px 12px;
+  }
+  .mv-brand {
+    font-size: 13px;
+  }
+  .mv-tabs {
+    gap: 20px;
+    font-size: 11px;
+  }
+  .mv-acct {
+    gap: 14px;
+    font-size: 8.5px;
+  }
+  .mv-r2 {
+    gap: 24px;
+    font-size: 8.5px;
+    margin-top: 12px;
+  }
+}

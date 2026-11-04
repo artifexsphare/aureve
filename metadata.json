@@ -1,0 +1,6 @@
+{
+  "name": "Maison Vell",
+  "description": "A luxury runway lookbook and full-stack modern e-commerce shopping platform for Maison Vell.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
