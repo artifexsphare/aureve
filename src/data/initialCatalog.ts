@@ -531,7 +531,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     minOrderAmount: 500,
     maxDiscount: 600,
     active: true,
-    description: '10% off AUREVÉ orders above $500 (up to $600 off)',
+    description: '10% off AUREVÉ orders above Rs. 500 (up to Rs. 600 off)',
   },
   {
     code: 'RUNWAY250',
@@ -539,7 +539,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     discountValue: 250,
     minOrderAmount: 2000,
     active: true,
-    description: '$250 privilege reduction on Spring Summer 2027 orders over $2,000',
+    description: 'Rs. 250 privilege reduction on Spring Summer 2027 orders over Rs. 2,000',
   },
   {
     code: 'PAKISTANFREE',
@@ -547,27 +547,18 @@ export const INITIAL_COUPONS: Coupon[] = [
     discountValue: 35,
     minOrderAmount: 400,
     active: true,
-    description: 'Complimentary express Pakistan courier coverage ($35 credit)',
+    description: 'Rs. 35 privilege credit on orders over Rs. 400',
   },
 ];
 
 export const INITIAL_SHIPPING_ZONES: ShippingZone[] = [
   {
-    id: 'zone-pk-metro',
-    name: 'Pakistan Metro Express (Karachi, Lahore, Islamabad, Rawalpindi, Faisalabad)',
-    cities: ['Karachi', 'Lahore', 'Islamabad', 'Rawalpindi', 'Faisalabad'],
-    fee: 20,
-    freeThreshold: 2500,
-    estimatedDays: '2-3 Business Days (TCS / DHL Express)',
-    active: true,
-  },
-  {
-    id: 'zone-pk-nationwide',
-    name: 'Pakistan Nationwide Insured Courier',
-    cities: ['Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala', 'Hyderabad', 'Abbottabad', 'Bahawalpur'],
-    fee: 35,
-    freeThreshold: 2500,
-    estimatedDays: '3-5 Business Days',
+    id: 'zone-pk-standard',
+    name: 'Pakistan Express Insured Delivery',
+    cities: ['Karachi'],
+    fee: 200,
+    freeThreshold: 999999999, // flat Rs. 200 for EVERY order
+    estimatedDays: '2-3 Business Days (Insured Courier)',
     active: true,
   },
 ];
@@ -575,7 +566,7 @@ export const INITIAL_SHIPPING_ZONES: ShippingZone[] = [
 export const INITIAL_BANNERS: Banner[] = [
   {
     id: 'banner-ss27',
-    title: 'Spring Summer 2027 — Complimentary Insured Express Delivery across Pakistan on orders over $2,500 · Code: MAISON10',
+    title: 'Spring Summer 2027 — Insured Express Delivery (Flat Rs. 200) · Code: MAISON10',
     subtitle: 'Private Atelier Dispatch',
     ctaLabel: 'Explore Collection',
     ctaLink: '/shop',
@@ -585,17 +576,4 @@ export const INITIAL_BANNERS: Banner[] = [
 
 export const PAKISTAN_CITIES = [
   'Karachi',
-  'Lahore',
-  'Islamabad',
-  'Rawalpindi',
-  'Faisalabad',
-  'Multan',
-  'Peshawar',
-  'Sialkot',
-  'Gujranwala',
-  'Hyderabad',
-  'Quetta',
-  'Abbottabad',
-  'Bahawalpur',
-  'Sargodha',
 ];

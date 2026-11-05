@@ -798,16 +798,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const calculateShipping = useCallback(
-    (city: string, subtotalAfterDiscount: number): number => {
-      const normalized = city.trim().toLowerCase();
-      const matchedZone = shippingZones.find((z) =>
-        z.cities.some((c: string) => c.toLowerCase() === normalized)
-      );
-      const zone = matchedZone || shippingZones[shippingZones.length - 1] || INITIAL_SHIPPING_ZONES[1];
-      if (subtotalAfterDiscount >= zone.freeThreshold) return 0;
-      return zone.fee;
+    (_city: string, _subtotalAfterDiscount: number): number => {
+      // Flat delivery fee of Rs. 200 for EVERY order, including Karachi
+      return 200;
     },
-    [shippingZones]
+    []
   );
 
   const validateCouponCode = useCallback(
@@ -836,7 +831,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return {
           valid: false,
           discount: 0,
-          message: `Minimum order of $${found.minOrderAmount.toLocaleString()} required for ${clean}.`,
+          message: `Minimum order of Rs. ${found.minOrderAmount.toLocaleString()} required for ${clean}.`,
         };
       }
 
@@ -852,7 +847,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         valid: true,
         discount,
         coupon: found,
-        message: `${clean} applied — -$${discount.toLocaleString()}`,
+        message: `${clean} applied — -Rs. ${discount.toLocaleString()}`,
       };
     },
     []
@@ -1009,31 +1004,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (!quoteRes.ok) {
         const errBody = await quoteRes.json().catch(() => ({}));
-        throw new Error(errBody.error || 'Failed to calculate authoritative order total.');
+        throw new Error(
+          errBody.error ||
+          `Failed to calculate authoritative order total (Server responded with HTTP ${quoteRes.status}).`
+        );
       }
 
       const quote = await quoteRes.json();
       const orderNumber: string = quote.orderNumber;
       const orderId = `ord_${orderNumber.replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
-      // Verify gateway availability BEFORE persisting fake success
+      // Easypaisa & JazzCash are coming soon — selection and processing are disabled
       if (input.paymentMethod === 'easypaisa' || input.paymentMethod === 'jazzcash') {
-        const gwRes = await fetch('/api/checkout/mobile-wallet-init', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            gateway: input.paymentMethod,
-            orderNumber,
-            amount: quote.grandTotal,
-            mobileNumber: input.customerPhone,
-          }),
-        });
-        if (!gwRes.ok) {
-          const gwErr = await gwRes.json().catch(() => ({}));
-          throw new Error(
-            gwErr.error || `${input.paymentMethod} merchant credentials are required in server environment.`
-          );
-        }
+        throw new Error(
+          `${input.paymentMethod === 'easypaisa' ? 'Easypaisa' : 'JazzCash'} payment is coming soon and currently disabled. Please select Cash on Delivery or Card.`
+        );
       }
 
       // Determine owner userId ('guest' for unauthenticated/unverified, uid for verified user)
@@ -1187,7 +1172,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       });
 
-      // Award loyalty points (1 point per $10 spent) if verified user document exists
+      // Award loyalty points (1 point per Rs. 100 spent) if verified user document exists
       if (ownerId !== 'guest') {
         const earned = Math.min(5000, Math.floor(quote.grandTotal / 10));
         if (earned > 0) {

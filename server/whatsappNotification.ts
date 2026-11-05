@@ -120,22 +120,19 @@ export function buildWhatsAppOrderMessage(order: WhatsAppOrderPayload, recipient
       return (
         `${idx + 1}. *${item.name}*\n` +
         (variantDetails ? `   • ${variantDetails}\n` : '') +
-        `   • Qty: ${item.quantity} × $${Number(item.unitPrice || 0).toLocaleString()} = *$${lineTotal.toLocaleString()}*`
+        `   • Qty: ${item.quantity} × Rs. ${Number(item.unitPrice || 0).toLocaleString()} = *Rs. ${lineTotal.toLocaleString()}*`
       );
     })
     .join('\n\n');
 
   const discountLine =
     order.discountTotal && order.discountTotal > 0
-      ? `• *Privilege Discount:* -$${Number(order.discountTotal).toLocaleString()}${
+      ? `• *Privilege Discount:* -Rs. ${Number(order.discountTotal).toLocaleString()}${
           order.couponCode ? ` (Code: ${order.couponCode})` : ''
         }\n`
       : '';
 
-  const shippingLine =
-    order.shippingFee === 0
-      ? '• *Insured Courier:* COMPLIMENTARY (FREE)\n'
-      : `• *Insured Courier:* $${Number(order.shippingFee).toLocaleString()}\n`;
+  const shippingLine = `• *Delivery Charges:* Rs. ${Number(order.shippingFee || 200).toLocaleString()}\n`;
 
   const instructionsLine = order.instructions?.trim()
     ? `• *Special Instructions:* ${order.instructions.trim()}\n`
@@ -160,10 +157,10 @@ export function buildWhatsAppOrderMessage(order: WhatsAppOrderPayload, recipient
     `\n👗 *ORDERED PIECES (${order.items?.length || 0} item${order.items?.length === 1 ? '' : 's'})*\n` +
     `${formattedItems || 'No line items listed'}\n\n` +
     `💰 *FINANCIAL SETTLEMENT*\n` +
-    `• *Subtotal:* $${Number(order.subtotal || 0).toLocaleString()}\n` +
+    `• *Subtotal:* Rs. ${Number(order.subtotal || 0).toLocaleString()}\n` +
     discountLine +
     shippingLine +
-    `• *Authoritative Grand Total:* *$${Number(order.grandTotal || 0).toLocaleString()}*\n` +
+    `• *Authoritative Grand Total:* *Rs. ${Number(order.grandTotal || 0).toLocaleString()}*\n` +
     `• *Payment Method:* ${paymentLabel}\n` +
     `• *Payment Status:* ${paymentState}\n\n` +
     `✨ *AUREVÉ Digital Atelier dispatch alert to ${recipientNumber}*`

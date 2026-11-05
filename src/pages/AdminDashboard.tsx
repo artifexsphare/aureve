@@ -503,7 +503,7 @@ export const AdminDashboardPage: React.FC = () => {
             <div className="border border-[#e6ebf0] p-6">
               <div className="text-xs text-[#737b86]">Net Confirmed Revenue</div>
               <div className="text-2xl font-medium tabular-nums mt-2">
-                ${analytics.totalRevenue.toLocaleString()}
+                Rs. {analytics.totalRevenue.toLocaleString()}
               </div>
             </div>
             <div className="border border-[#e6ebf0] p-6">
@@ -545,11 +545,11 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
                     <div className="text-right tabular-nums whitespace-nowrap">
                       <div className="font-medium">
-                        {unitsSold > 0 ? `${unitsSold} sold` : `$${p.price.toLocaleString()}`}
+                        {unitsSold > 0 ? `${unitsSold} sold` : `Rs. ${p.price.toLocaleString()}`}
                       </div>
                       <div className="text-[#737b86]">
                         {unitsSold > 0
-                          ? `$${estimatedRevenue.toLocaleString()} rev`
+                          ? `Rs. ${estimatedRevenue.toLocaleString()} rev`
                           : `${p.ratingCount || 0} client reviews`}
                       </div>
                     </div>
@@ -647,7 +647,7 @@ export const AdminDashboardPage: React.FC = () => {
                         )}
                       </td>
                       <td className="p-4 max-w-xs">{ord.itemSummary}</td>
-                      <td className="p-4 tabular-nums font-medium">${ord.grandTotal.toLocaleString()}</td>
+                      <td className="p-4 tabular-nums font-medium">Rs. {ord.grandTotal.toLocaleString()}</td>
                       <td className="p-4 uppercase whitespace-nowrap">
                         {ord.paymentMethod} · {ord.paymentStatus}
                       </td>
@@ -730,7 +730,7 @@ export const AdminDashboardPage: React.FC = () => {
                 required
                 value={pPrice}
                 onChange={(e) => setPPrice(Number(e.target.value))}
-                placeholder="Price ($)"
+                placeholder="Price (Rs.)"
                 className="border border-[#e6ebf0] px-3 py-2 text-xs"
               />
               <input
@@ -854,7 +854,7 @@ export const AdminDashboardPage: React.FC = () => {
                     {prod.name} {!prod.published && <span className="text-[#a4adb8]">(Draft)</span>}
                   </div>
                   <div className="text-[#737b86] tabular-nums">
-                    {prod.sku} · {prod.category} · Stock: {prod.stock} · ${prod.price.toLocaleString()}
+                    {prod.sku} · {prod.category} · Stock: {prod.stock} · Rs. {prod.price.toLocaleString()}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1009,7 +1009,7 @@ export const AdminDashboardPage: React.FC = () => {
                 className="border border-[#e6ebf0] px-2 py-2 text-xs bg-white"
               >
                 <option value="percentage">Percentage (%)</option>
-                <option value="fixed">Fixed ($)</option>
+                <option value="fixed">Fixed (Rs.)</option>
               </select>
               <input
                 type="number"
@@ -1039,7 +1039,7 @@ export const AdminDashboardPage: React.FC = () => {
                 <div>
                   <div className="font-medium">{cp.code}</div>
                   <div className="text-[#737b86] tabular-nums">
-                    {cp.discountType === 'percentage' ? `${cp.discountValue}%` : `$${cp.discountValue}`} off orders ≥ $
+                    {cp.discountType === 'percentage' ? `${cp.discountValue}%` : `Rs. ${cp.discountValue}`} off orders ≥ Rs.{' '}
                     {cp.minOrderAmount}
                   </div>
                 </div>
@@ -1112,7 +1112,7 @@ export const AdminDashboardPage: React.FC = () => {
                 required
                 value={znFee}
                 onChange={(e) => setZnFee(Number(e.target.value))}
-                placeholder="Fee ($)"
+                placeholder="Fee (Rs.)"
                 className="border border-[#e6ebf0] px-3 py-2 text-xs"
               />
               <input
@@ -1120,7 +1120,7 @@ export const AdminDashboardPage: React.FC = () => {
                 required
                 value={znFree}
                 onChange={(e) => setZnFree(Number(e.target.value))}
-                placeholder="Free Threshold ($)"
+                placeholder="Free Threshold (Rs.)"
                 className="border border-[#e6ebf0] px-3 py-2 text-xs"
               />
             </div>
@@ -1134,7 +1134,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div key={z.id} className="border border-[#e6ebf0] p-4 text-xs">
                 <div className="font-medium">{z.name}</div>
                 <div className="text-[#737b86] mt-1 tabular-nums">
-                  Fee: ${z.fee} · Free over ${z.freeThreshold} · Cities: {z.cities.join(', ')}
+                  Fee: Rs. {z.fee} · Cities: {z.cities.join(', ')}
                 </div>
               </div>
             ))}

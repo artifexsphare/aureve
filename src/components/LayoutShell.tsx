@@ -408,7 +408,7 @@ export const LayoutShell: React.FC<{ children: React.ReactNode }> = ({ children 
                         {item.category} · {item.sku}
                       </div>
                       <div className="text-xs font-medium mt-1 tabular-nums">
-                        ${getEffectivePrice(item).toLocaleString()}
+                        Rs. {getEffectivePrice(item).toLocaleString()}
                       </div>
                     </div>
                   </button>
@@ -553,12 +553,10 @@ export const LayoutShell: React.FC<{ children: React.ReactNode }> = ({ children 
               <div className="p-5 sm:p-6 bg-[#f3f6fa] border-t border-[#e6ebf0] space-y-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-[#737b86]">Subtotal</span>
-                  <span className="font-medium tabular-nums">${cartSubtotal.toLocaleString()}</span>
+                  <span className="font-medium tabular-nums">Rs. {cartSubtotal.toLocaleString()}</span>
                 </div>
                 <p className="text-[11px] text-[#737b86]">
-                  {cartSubtotal >= 2500
-                    ? 'Complimentary insured express delivery unlocked.'
-                    : `Add $${(2500 - cartSubtotal).toLocaleString()} more for complimentary express delivery.`}
+                  Insured Express Delivery (Flat Rs. 200 on all orders).
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -678,7 +676,7 @@ const AbandonedCartPrompt: React.FC<{
         </button>
       </div>
       <p className="text-[#737b86] leading-relaxed">
-        {cartCount} piece{cartCount > 1 ? 's' : ''} (${cartSubtotal.toLocaleString()}) reserved in
+        {cartCount} piece{cartCount > 1 ? 's' : ''} (Rs. {cartSubtotal.toLocaleString()}) reserved in
         your bag. Use code <strong>MAISON10</strong> at checkout.
       </p>
       <button

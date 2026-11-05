@@ -83,10 +83,10 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
 
         <div className="flex items-center justify-between pt-2 border-t border-[#f3f6fa]">
           <div className="text-sm tabular-nums flex items-center gap-2">
-            <span className="font-medium text-[#16191f]">${effectivePrice.toLocaleString()}</span>
+            <span className="font-medium text-[#16191f]">Rs. {effectivePrice.toLocaleString()}</span>
             {hasDiscount && (
               <span className="text-xs text-[#a4adb8] line-through">
-                ${product.price.toLocaleString()}
+                Rs. {product.price.toLocaleString()}
               </span>
             )}
           </div>
@@ -273,7 +273,7 @@ export const ShopPage: React.FC = () => {
 
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-            <span className="whitespace-nowrap">Max ${maxPrice.toLocaleString()}</span>
+            <span className="whitespace-nowrap">Max Rs. {maxPrice.toLocaleString()}</span>
             <input
               type="range"
               min={300}
@@ -482,7 +482,7 @@ export const LookbookGridPage: React.FC = () => {
                         </Link>
                         <div className="flex items-center gap-3">
                           <span className="tabular-nums text-[#737b86]">
-                            ${getEffectivePrice(piece).toLocaleString()}
+                            Rs. {getEffectivePrice(piece).toLocaleString()}
                           </span>
                           <button
                             type="button"
@@ -764,10 +764,10 @@ export const ProductDetailPage: React.FC = () => {
             <h1 className="wide text-xl md:text-2xl tracking-[0.14em] mt-2">{product.name}</h1>
 
             <div className="mt-3 flex items-baseline gap-3 tabular-nums">
-              <span className="text-xl font-medium">${effectivePrice.toLocaleString()}</span>
+              <span className="text-xl font-medium">Rs. {effectivePrice.toLocaleString()}</span>
               {effectivePrice < product.price && (
                 <span className="text-sm text-[#a4adb8] line-through">
-                  ${product.price.toLocaleString()}
+                  Rs. {product.price.toLocaleString()}
                 </span>
               )}
               {product.ratingAvg && (
@@ -932,7 +932,7 @@ export const ProductDetailPage: React.FC = () => {
                   {product.name} + {companionPiece.name}
                 </div>
                 <div className="text-xs text-[#737b86] mt-1 tabular-nums">
-                  Combined Total: $
+                  Combined Total: Rs.{' '}
                   {(effectivePrice + getEffectivePrice(companionPiece)).toLocaleString()}
                 </div>
               </div>
@@ -1109,7 +1109,7 @@ export const ComparePage: React.FC = () => {
                 <td className="p-4 text-[#737b86]">Price</td>
                 {compared.map((p) => (
                   <td key={p.id} className="p-4 font-medium tabular-nums">
-                    ${getEffectivePrice(p).toLocaleString()}
+                    Rs. {getEffectivePrice(p).toLocaleString()}
                   </td>
                 ))}
               </tr>

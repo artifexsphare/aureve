@@ -97,12 +97,8 @@ export default function App() {
                   title="Pakistan & International Shipping Policy"
                   sections={[
                     {
-                      heading: 'Metro Express Delivery (2–3 Business Days)',
-                      body: 'Orders destined for Karachi, Lahore, Islamabad, Rawalpindi, and Faisalabad ship via insured priority air courier ($20 flat fee, complimentary above $2,500).',
-                    },
-                    {
-                      heading: 'Nationwide Insured Delivery (3–5 Business Days)',
-                      body: 'All other cities in Pakistan receive tamper-sealed couture garment boxes ($35 flat fee, complimentary above $2,500).',
+                      heading: 'Insured Express Courier Delivery (2–3 Business Days)',
+                      body: 'All orders across Pakistan receive insured tamper-sealed atelier garment packaging at a flat delivery fee of Rs. 200.',
                     },
                   ]}
                 />

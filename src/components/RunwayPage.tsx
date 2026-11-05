@@ -403,7 +403,7 @@ export const RunwayPage: React.FC = () => {
                       {piece.name}
                     </button>
                   </h3>
-                  <span>${displayPrice.toLocaleString()}</span>
+                  <span>Rs. {displayPrice.toLocaleString()}</span>
                   <button
                     type="button"
                     className="mv-add"

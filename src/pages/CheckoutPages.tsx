@@ -24,7 +24,7 @@ export const CartPage: React.FC = () => {
     validateCouponCode,
   } = useStore();
 
-  const [city, setCity] = useState('Lahore');
+  const [city, setCity] = useState('Karachi');
   const [couponInput, setCouponInput] = useState('');
   const [discount, setDiscount] = useState(0);
   const [couponMessage, setCouponMessage] = useState('');
@@ -85,7 +85,7 @@ export const CartPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="text-sm font-medium tabular-nums whitespace-nowrap">
-                      ${(item.unitPrice * item.quantity).toLocaleString()}
+                      Rs. {(item.unitPrice * item.quantity).toLocaleString()}
                     </div>
                   </div>
 
@@ -172,23 +172,23 @@ export const CartPage: React.FC = () => {
             <div className="border-t border-[#e6ebf0] pt-4 space-y-2.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-[#737b86]">Subtotal</span>
-                <span className="tabular-nums">${cartSubtotal.toLocaleString()}</span>
+                <span className="tabular-nums">Rs. {cartSubtotal.toLocaleString()}</span>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-[#16191f]">
                   <span>Promotional Reduction</span>
-                  <span className="tabular-nums">−${discount.toLocaleString()}</span>
+                  <span className="tabular-nums">−Rs. {discount.toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-[#737b86]">Insured Courier ({city})</span>
+                <span className="text-[#737b86]">Delivery Charges</span>
                 <span className="tabular-nums">
-                  {shipping === 0 ? 'Complimentary' : `$${shipping.toLocaleString()}`}
+                  Rs. {shipping.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between pt-3 border-t border-[#e6ebf0] text-sm font-medium">
                 <span>Grand Total</span>
-                <span className="tabular-nums">${grandTotal.toLocaleString()}</span>
+                <span className="tabular-nums">Rs. {grandTotal.toLocaleString()}</span>
               </div>
             </div>
 
@@ -317,10 +317,10 @@ export const CheckoutPage: React.FC = () => {
     notify,
   } = useStore();
 
-  const [customerName, setCustomerName] = useState(user?.displayName || '');
+  const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState(user?.email || '');
-  const [customerPhone, setCustomerPhone] = useState(userPhone || '+92 300 ');
-  const [city, setCity] = useState('Lahore');
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [city, setCity] = useState('Karachi');
   const [area, setArea] = useState('');
   const [street, setStreet] = useState('');
   const [houseNumber, setHouseNumber] = useState('');
@@ -349,17 +349,19 @@ export const CheckoutPage: React.FC = () => {
   } | null>(null);
 
   useEffect(() => {
-    if (user?.displayName && !customerName) setCustomerName(user.displayName);
     if (user?.email && !customerEmail) setCustomerEmail(user.email);
-    if (userPhone && customerPhone === '+92 300 ') setCustomerPhone(userPhone);
+    if (userPhone && !mobileNumber) {
+      setMobileNumber(userPhone.replace(/^\+?92\s*|^0/, ''));
+    }
   }, [user, userPhone]);
 
   useEffect(() => {
     const def = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
     if (def && !area && !street) {
-      setCustomerName(def.recipientName);
-      setCustomerPhone(def.phone);
-      setCity(def.city);
+      if (def.phone && !mobileNumber) {
+        setMobileNumber(def.phone.replace(/^\+?92\s*|^0/, ''));
+      }
+      setCity('Karachi');
       setArea(def.area);
       setStreet(def.street);
       setHouseNumber(def.houseNumber);
@@ -446,10 +448,17 @@ export const CheckoutPage: React.FC = () => {
     setErrorMsg('');
     setSubmitting(true);
     try {
+      const cleanPhoneDigits = mobileNumber.trim().replace(/^0/, '');
+      const digitsOnly = cleanPhoneDigits.replace(/\D/g, '');
+      if (!digitsOnly || digitsOnly.length < 7 || digitsOnly.length > 12) {
+        throw new Error('Please enter a valid Pakistani mobile number after +92.');
+      }
+      const fullCustomerPhone = `+92 ${cleanPhoneDigits}`;
+
       const result = await placeOrder({
         customerName,
         customerEmail,
-        customerPhone,
+        customerPhone: fullCustomerPhone,
         city,
         area,
         street,
@@ -522,7 +531,7 @@ export const CheckoutPage: React.FC = () => {
           <div className="bg-white border border-[#e6ebf0] p-4 flex items-center justify-between text-xs">
             <span className="text-[#737b86]">Authoritative Amount Due</span>
             <span className="text-base font-medium tabular-nums">
-              ${pendingStripeCheckout.grandTotal.toLocaleString()}
+              Rs. {pendingStripeCheckout.grandTotal.toLocaleString()}
             </span>
           </div>
 
@@ -600,7 +609,7 @@ export const CheckoutPage: React.FC = () => {
                     type="button"
                     onClick={() => {
                       setCustomerName(addr.recipientName);
-                      setCustomerPhone(addr.phone);
+                      setMobileNumber((addr.phone || '').replace(/^\+?92\s*|^0/, ''));
                       setCity(addr.city);
                       setArea(addr.area);
                       setStreet(addr.street);
@@ -624,7 +633,7 @@ export const CheckoutPage: React.FC = () => {
             <h2 className="wide text-xs tracking-[0.16em]">01. Recipient & Delivery Address</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-[#737b86] mb-1">Full Name *</label>
+                <label className="block text-xs text-[#737b86] mb-1">Customer Name *</label>
                 <input
                   type="text"
                   required
@@ -632,22 +641,35 @@ export const CheckoutPage: React.FC = () => {
                   maxLength={100}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Ayesha Khan"
+                  placeholder="Customer Name"
                   className="w-full border border-[#e6ebf0] px-3.5 py-2.5 text-xs outline-none focus:border-[#16191f]"
                 />
               </div>
               <div>
                 <label className="block text-xs text-[#737b86] mb-1">Pakistani Mobile Number *</label>
-                <input
-                  type="tel"
-                  required
-                  minLength={7}
-                  maxLength={30}
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="+92 300 1234567"
-                  className="w-full border border-[#e6ebf0] px-3.5 py-2.5 text-xs outline-none focus:border-[#16191f]"
-                />
+                <div className="flex w-full border border-[#e6ebf0] focus-within:border-[#16191f] transition-colors bg-white">
+                  <span className="inline-flex items-center px-3.5 py-2.5 text-xs text-[#16191f] font-medium bg-[#f3f6fa] border-r border-[#e6ebf0] select-none tracking-wider shrink-0">
+                    +92
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    minLength={7}
+                    maxLength={18}
+                    value={mobileNumber}
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (val.startsWith('+92')) {
+                        val = val.slice(3).trim();
+                      } else if (val.startsWith('92') && val.length > 9) {
+                        val = val.slice(2).trim();
+                      }
+                      setMobileNumber(val);
+                    }}
+                    placeholder="Enter mobile number"
+                    className="w-full flex-1 min-w-0 px-3.5 py-2.5 text-xs outline-none bg-transparent"
+                  />
+                </div>
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-xs text-[#737b86] mb-1">Email Address (For Order & Invoice) *</label>
@@ -759,7 +781,7 @@ export const CheckoutPage: React.FC = () => {
                   <Truck className="w-4 h-4 text-[#737b86]" />
                 </div>
                 <p className="text-[11px] text-[#737b86] mt-1.5 pl-6">
-                  Settle upon physical inspection at your doorstep in Karachi, Lahore, Islamabad, and nationwide.
+                  Settle upon physical inspection at your doorstep in Karachi with insured priority courier.
                 </p>
               </label>
 
@@ -790,56 +812,56 @@ export const CheckoutPage: React.FC = () => {
               </label>
 
               {/* Easypaisa */}
-              <label
-                className={`block p-4 border cursor-pointer transition-colors ${
-                  paymentMethod === 'easypaisa' ? 'border-[#16191f] bg-[#f3f6fa]' : 'border-[#e6ebf0]'
-                }`}
+              <div
+                className="block p-4 border border-[#e6ebf0] bg-[#fafbfc] select-none cursor-not-allowed transition-colors"
+                aria-disabled="true"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <input
                       type="radio"
                       name="payment"
-                      checked={paymentMethod === 'easypaisa'}
-                      onChange={() => setPaymentMethod('easypaisa')}
-                      className="accent-[#16191f]"
+                      checked={false}
+                      disabled
+                      aria-disabled="true"
+                      className="accent-[#16191f] cursor-not-allowed opacity-40"
                     />
-                    <span className="text-xs font-medium">Easypaisa Mobile Account</span>
+                    <span className="text-xs font-medium text-[#737b86]">Easypaisa Mobile Account</span>
                   </div>
-                  <span className="text-[11px] text-[#737b86]">PK Mobile Wallet</span>
+                  <span className="inline-flex items-center px-2 py-0.5 text-[9px] tracking-[0.14em] font-semibold bg-[#e6ebf0] text-[#16191f] uppercase border border-[#d6dde4]">
+                    COMING SOON
+                  </span>
                 </div>
-                <p className="text-[11px] text-[#737b86] mt-1.5 pl-6">
-                  {gatewayStatus.easypaisa?.enabled
-                    ? 'Easypaisa Merchant HMAC integration ready.'
-                    : 'Requires EASYPAISA_STORE_ID & EASYPAISA_HASH_KEY in server environment secrets.'}
+                <p className="text-[11px] text-[#8c94a0] mt-1.5 pl-6">
+                  Coming Soon — Available Soon
                 </p>
-              </label>
+              </div>
 
               {/* JazzCash */}
-              <label
-                className={`block p-4 border cursor-pointer transition-colors ${
-                  paymentMethod === 'jazzcash' ? 'border-[#16191f] bg-[#f3f6fa]' : 'border-[#e6ebf0]'
-                }`}
+              <div
+                className="block p-4 border border-[#e6ebf0] bg-[#fafbfc] select-none cursor-not-allowed transition-colors"
+                aria-disabled="true"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <input
                       type="radio"
                       name="payment"
-                      checked={paymentMethod === 'jazzcash'}
-                      onChange={() => setPaymentMethod('jazzcash')}
-                      className="accent-[#16191f]"
+                      checked={false}
+                      disabled
+                      aria-disabled="true"
+                      className="accent-[#16191f] cursor-not-allowed opacity-40"
                     />
-                    <span className="text-xs font-medium">JazzCash Wallet / Voucher</span>
+                    <span className="text-xs font-medium text-[#737b86]">JazzCash Wallet / Voucher</span>
                   </div>
-                  <span className="text-[11px] text-[#737b86]">HMAC-SHA256</span>
+                  <span className="inline-flex items-center px-2 py-0.5 text-[9px] tracking-[0.14em] font-semibold bg-[#e6ebf0] text-[#16191f] uppercase border border-[#d6dde4]">
+                    COMING SOON
+                  </span>
                 </div>
-                <p className="text-[11px] text-[#737b86] mt-1.5 pl-6">
-                  {gatewayStatus.jazzcash?.enabled
-                    ? 'JazzCash Merchant gateway active.'
-                    : 'Requires JAZZCASH_MERCHANT_ID, JAZZCASH_PASSWORD & JAZZCASH_INTEGRITY_SALT in server secrets.'}
+                <p className="text-[11px] text-[#8c94a0] mt-1.5 pl-6">
+                  Coming Soon — Available Soon
                 </p>
-              </label>
+              </div>
             </div>
           </section>
 
@@ -869,7 +891,7 @@ export const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
                 <span className="tabular-nums font-medium">
-                  ${(entry.unitPrice * entry.quantity).toLocaleString()}
+                  Rs. {(entry.unitPrice * entry.quantity).toLocaleString()}
                 </span>
               </div>
             ))}
@@ -898,23 +920,23 @@ export const CheckoutPage: React.FC = () => {
           <div className="border-t border-[#e6ebf0] pt-4 space-y-2 text-xs">
             <div className="flex justify-between">
               <span className="text-[#737b86]">Subtotal</span>
-              <span className="tabular-nums">${cartSubtotal.toLocaleString()}</span>
+              <span className="tabular-nums">Rs. {cartSubtotal.toLocaleString()}</span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between">
                 <span>Privilege Discount</span>
-                <span className="tabular-nums">−${discount.toLocaleString()}</span>
+                <span className="tabular-nums">−Rs. {discount.toLocaleString()}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-[#737b86]">Delivery ({city})</span>
+              <span className="text-[#737b86]">Delivery Charges</span>
               <span className="tabular-nums">
-                {shippingFee === 0 ? 'Complimentary' : `$${shippingFee.toLocaleString()}`}
+                Rs. {shippingFee.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between pt-3 border-t border-[#e6ebf0] text-base font-medium">
               <span>Authoritative Total</span>
-              <span className="tabular-nums">${grandTotal.toLocaleString()}</span>
+              <span className="tabular-nums">Rs. {grandTotal.toLocaleString()}</span>
             </div>
           </div>
 
@@ -922,7 +944,7 @@ export const CheckoutPage: React.FC = () => {
             <div className="p-4 bg-white border border-[#e6ebf0] text-xs space-y-1">
               <div className="wide text-[10px] tracking-[0.14em]">Dispatch Summary</div>
               <p className="text-[#737b86]">
-                Delivering to <strong>{customerName}</strong> ({customerPhone}) at {houseNumber || '—'},{' '}
+                Delivering to <strong>{customerName}</strong> ({mobileNumber.trim() ? `+92 ${mobileNumber.trim().replace(/^0/, '')}` : '+92 —'}) at {houseNumber || '—'},{' '}
                 {street || '—'}, {area}, {city} via <strong>{paymentMethod.toUpperCase()}</strong>.
               </p>
             </div>
@@ -944,8 +966,8 @@ export const CheckoutPage: React.FC = () => {
                 ? 'Initializing Stripe Checkout...'
                 : 'Processing Authoritative Order...'
               : paymentMethod === 'stripe'
-              ? `Confirm & Pay with Stripe ($${grandTotal.toLocaleString()})`
-              : `Confirm & Place Order ($${grandTotal.toLocaleString()})`}
+              ? `Confirm & Pay with Stripe (Rs. ${grandTotal.toLocaleString()})`
+              : `Confirm & Place Order (Rs. ${grandTotal.toLocaleString()})`}
           </button>
 
           <div className="flex items-center gap-2 text-[11px] text-[#737b86]">
@@ -1127,7 +1149,7 @@ export const OrderSuccessPage: React.FC = () => {
           </div>
           <div className="flex justify-between pt-2 border-t border-[#e6ebf0] text-sm font-medium">
             <span>Total</span>
-            <span className="tabular-nums">${Number(lookupData.grandTotal || 0).toLocaleString()}</span>
+            <span className="tabular-nums">Rs. {Number(lookupData.grandTotal || 0).toLocaleString()}</span>
           </div>
         </div>
       )}
@@ -1278,7 +1300,7 @@ export const TrackOrderPage: React.FC = () => {
             <div>
               <span className="text-[#737b86] block">Grand Total</span>
               <span className="font-medium tabular-nums">
-                ${Number(result.grandTotal || 0).toLocaleString()}
+                Rs. {Number(result.grandTotal || 0).toLocaleString()}
               </span>
             </div>
           </div>

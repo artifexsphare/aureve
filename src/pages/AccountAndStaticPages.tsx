@@ -20,7 +20,7 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
   const [mode, setMode] = useState<'login' | 'register' | 'reset'>(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('+92 300 ');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [authErr, setAuthErr] = useState('');
@@ -216,7 +216,7 @@ export const AccountPage: React.FC<{ initialTab?: 'profile' | 'orders' | 'addres
   // Address form
   const [addrLabel, setAddrLabel] = useState('Residence');
   const [addrName, setAddrName] = useState(user?.displayName || '');
-  const [addrPhone, setAddrPhone] = useState(userPhone || '+92 300 ');
+  const [addrPhone, setAddrPhone] = useState(userPhone || '');
   const [addrCity, setAddrCity] = useState('Karachi');
   const [addrArea, setAddrArea] = useState('');
   const [addrStreet, setAddrStreet] = useState('');
@@ -293,7 +293,7 @@ export const AccountPage: React.FC<{ initialTab?: 'profile' | 'orders' | 'addres
         : `
           <tr>
             <td colspan="2" style="padding:10px 0;border-bottom:1px solid #e6ebf0;">${ord.itemSummary}</td>
-            <td style="padding:10px 0;border-bottom:1px solid #e6ebf0;text-align:right;">$${ord.subtotal.toLocaleString()}</td>
+            <td style="padding:10px 0;border-bottom:1px solid #e6ebf0;text-align:right;">Rs. ${ord.subtotal.toLocaleString()}</td>
           </tr>`;
 
     const html = `<!doctype html>
@@ -336,10 +336,10 @@ export const AccountPage: React.FC<{ initialTab?: 'profile' | 'orders' | 'addres
     <tbody>${itemsHtml}</tbody>
   </table>
   <div class="totals">
-    <div class="row"><span>Subtotal</span><span>$${ord.subtotal.toLocaleString()}</span></div>
-    <div class="row"><span>Promotional Privilege</span><span>-$${ord.discountTotal.toLocaleString()}</span></div>
-    <div class="row"><span>Insured Shipping</span><span>$${ord.shippingFee.toLocaleString()}</span></div>
-    <div class="row" style="font-weight:600;font-size:15px;margin-top:8px;"><span>Grand Total</span><span>$${ord.grandTotal.toLocaleString()}</span></div>
+    <div class="row"><span>Subtotal</span><span>Rs. ${ord.subtotal.toLocaleString()}</span></div>
+    <div class="row"><span>Promotional Privilege</span><span>-Rs. ${ord.discountTotal.toLocaleString()}</span></div>
+    <div class="row"><span>Delivery Charges</span><span>Rs. ${ord.shippingFee.toLocaleString()}</span></div>
+    <div class="row" style="font-weight:600;font-size:15px;margin-top:8px;"><span>Grand Total</span><span>Rs. ${ord.grandTotal.toLocaleString()}</span></div>
   </div>
 </body>
 </html>`;
@@ -437,7 +437,7 @@ export const AccountPage: React.FC<{ initialTab?: 'profile' | 'orders' | 'addres
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+92 300 1234567"
+                placeholder="Enter mobile number"
                 className="w-full border border-[#e6ebf0] px-3.5 py-2.5 text-xs outline-none"
               />
             </div>
@@ -464,7 +464,7 @@ export const AccountPage: React.FC<{ initialTab?: 'profile' | 'orders' | 'addres
             <div className="wide text-xs tracking-[0.15em]">AUREVÉ Loyalty Circle</div>
             <div className="text-3xl font-medium tabular-nums pt-2">{loyaltyPoints} Points</div>
             <p className="text-xs text-[#737b86] leading-relaxed">
-              Earn 1 AUREVÉ Point for every $10 invested in seasonal couture and accessories. Points
+              Earn 1 AUREVÉ Point for every Rs. 100 invested in seasonal couture and accessories. Points
               unlock private trunk show invitations and complimentary tailoring alterations.
             </p>
           </div>
@@ -495,7 +495,7 @@ export const AccountPage: React.FC<{ initialTab?: 'profile' | 'orders' | 'addres
                   <div className="text-right">
                     <div className="text-xs font-medium">{ord.status}</div>
                     <div className="text-sm font-medium tabular-nums mt-0.5">
-                      ${ord.grandTotal.toLocaleString()}
+                      Rs. {ord.grandTotal.toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -713,7 +713,7 @@ export const AccountPage: React.FC<{ initialTab?: 'profile' | 'orders' | 'addres
                 required
                 value={addrPhone}
                 onChange={(e) => setAddrPhone(e.target.value)}
-                placeholder="+92 300 1234567"
+                placeholder="Enter mobile number"
                 className="border border-[#e6ebf0] px-3 py-2 text-xs"
               />
               <input
