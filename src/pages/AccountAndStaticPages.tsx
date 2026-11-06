@@ -45,7 +45,6 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
   const [copiedDomain, setCopiedDomain] = useState(false);
 
   const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'aureve-mocha.vercel.app';
-  const isVercelHost = currentHost.includes('vercel.app') || currentHost.includes('aureve');
 
   const handleCopyHost = () => {
     navigator.clipboard?.writeText(currentHost);
@@ -56,6 +55,7 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
 
   const handleGoogle = async () => {
     setAuthErr('');
+    setShowDomainNotice(false);
     setBusy(true);
     try {
       await loginWithGoogle();
@@ -67,10 +67,10 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
       if (code === 'auth/unauthorized-domain' || msg.includes('unauthorized-domain')) {
         setShowDomainNotice(true);
         setAuthErr(
-          `Domain Authorization: Google OAuth popups require this domain ("${currentHost}") to be added to Firebase Console -> Authentication -> Settings -> Authorized domains. Please use normal Email & Password sign-in below to log in immediately without any domain restriction!`
+          `Google OAuth requires "${currentHost}" to be added to Firebase Console Authorized Domains. Please use normal Email & Password sign-in below to log in immediately without any restriction!`
         );
         notify(
-          'Domain Authorization Required',
+          'Google Domain Authorization Required',
           `Use Email & Password below to log in immediately, or add ${currentHost} to Firebase Authorized Domains.`,
           'error'
         );
@@ -87,6 +87,7 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthErr('');
+    setShowDomainNotice(false);
     setResetSent(false);
     setBusy(true);
     try {
@@ -179,85 +180,16 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
         </div>
       )}
 
-      {/* Domain Authorization Helper (Visible on error or on Vercel) */}
-      {(showDomainNotice || isVercelHost) && (
-        <div className="p-4 bg-[#fbf9f5] border border-[#e2d9cc] space-y-3 text-xs">
-          <div className="flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 text-[#9c6a1e] shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <div className="font-semibold text-[#16191f] tracking-wide">
-                Domain Authorization for Google Sign-In
-              </div>
-              <p className="text-[#655a4e] leading-relaxed">
-                Google OAuth popups require this domain (
-                <span className="font-mono font-medium text-[#16191f] bg-white px-1 py-0.5 border border-[#e2d9cc]">
-                  {currentHost}
-                </span>
-                ) to be added to Firebase Console Authorized Domains.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-            <a
-              href="https://console.firebase.google.com/project/lofty-surfer-1wpgt/authentication/settings"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#16191f] text-white text-[11px] font-medium tracking-wider hover:opacity-90 transition-opacity"
-            >
-              <span>Firebase Settings</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-
-            <button
-              type="button"
-              onClick={handleCopyHost}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 border border-[#16191f] text-[#16191f] text-[11px] font-medium tracking-wider hover:bg-[#ede5d8] transition-colors"
-            >
-              {copiedDomain ? <Check className="w-3 h-3 text-[#2d7a4d]" /> : <Copy className="w-3 h-3" />}
-              <span>{copiedDomain ? 'Copied Domain!' : 'Copy Current Domain'}</span>
-            </button>
-          </div>
-
-          <div className="p-2.5 bg-white border border-[#e2d9cc] text-[11px] text-[#655a4e] space-y-1">
-            <div className="font-medium text-[#16191f]">Quick 10-Second Whitelist:</div>
-            <ol className="list-decimal list-inside space-y-0.5 leading-relaxed pl-1">
-              <li>Click <strong>Firebase Settings</strong> above.</li>
-              <li>Under <strong>Authorized domains</strong>, click <strong>Add domain</strong>.</li>
-              <li>Paste <code className="bg-[#f4efe6] px-1">{currentHost}</code> and click <strong>Save</strong>.</li>
-            </ol>
-          </div>
-
-          <div className="flex items-center gap-2 pt-1 text-[11px] text-[#2d7a4d] font-medium">
-            <ShieldCheck className="w-4 h-4 shrink-0" />
-            <span>
-              Instant Access: Use normal Email &amp; Password below to log in immediately without any domain restriction!
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Primary Verified Google Authentication */}
       {mode !== 'reset' && (
-        <div className="space-y-1.5">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={handleGoogle}
-            className="w-full py-3.5 bg-[#16191f] text-white wide text-[10px] tracking-[0.15em] hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-          >
-            <span>Continue with Google (Verified Access)</span>
-          </button>
-          {!showDomainNotice && !isVercelHost && (
-            <button
-              type="button"
-              onClick={() => setShowDomainNotice(true)}
-              className="text-[10px] text-[#737b86] underline hover:text-[#16191f] block text-center w-full"
-            >
-              Google OAuth domain authorization guide
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={handleGoogle}
+          className="w-full py-3.5 bg-[#16191f] text-white wide text-[10px] tracking-[0.15em] hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+        >
+          <span>Continue with Google (Verified Access)</span>
+        </button>
       )}
 
       {mode !== 'reset' && (
@@ -347,12 +279,33 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
         )}
 
         {authErr && (
-          <div className="p-3.5 bg-[#fbf1f1] border border-[#e04343] text-xs text-[#a32222] leading-relaxed space-y-1">
+          <div className="p-3.5 bg-[#fbf1f1] border border-[#e04343] text-xs text-[#a32222] leading-relaxed space-y-2">
             <div className="font-semibold flex items-center gap-1.5">
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
               <span>Authentication Notice</span>
             </div>
             <p>{authErr}</p>
+            {showDomainNotice && (
+              <div className="pt-2 border-t border-[#f0c2c2] flex flex-wrap items-center gap-2">
+                <a
+                  href="https://console.firebase.google.com/project/lofty-surfer-1wpgt/authentication/settings"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#16191f] text-white text-[10px] font-medium tracking-wider hover:opacity-90 transition-opacity"
+                >
+                  <span>Firebase Console Settings</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+                <button
+                  type="button"
+                  onClick={handleCopyHost}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-[#16191f] text-[#16191f] text-[10px] font-medium tracking-wider hover:bg-[#ede5d8] transition-colors"
+                >
+                  {copiedDomain ? <Check className="w-3 h-3 text-[#2d7a4d]" /> : <Copy className="w-3 h-3" />}
+                  <span>{copiedDomain ? 'Copied Domain!' : 'Copy Domain'}</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
