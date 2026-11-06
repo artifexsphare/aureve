@@ -1,5 +1,20 @@
 import { collection, getDocs, query, where } from 'firebase/firestore';
-import { ChevronDown, ChevronUp, Download, LogOut, MapPin, Package, Shield, Trash2 } from 'lucide-react';
+import {
+  AlertCircle,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Download,
+  ExternalLink,
+  KeyRound,
+  LogOut,
+  MapPin,
+  Package,
+  Shield,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
@@ -14,16 +29,30 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/account';
+  const isAdminRedirect = redirectTo.toLowerCase().includes('admin');
 
   const { loginWithGoogle, loginWithEmail, registerWithEmail, resetPassword, notify } = useStore();
 
   const [mode, setMode] = useState<'login' | 'register' | 'reset'>(initialMode);
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(isAdminRedirect ? 'razasphare@gmail.com' : '');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [authErr, setAuthErr] = useState('');
+  const [resetSent, setResetSent] = useState(false);
+  const [showDomainNotice, setShowDomainNotice] = useState(false);
+  const [copiedDomain, setCopiedDomain] = useState(false);
+
+  const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'aureve-mocha.vercel.app';
+  const isVercelHost = currentHost.includes('vercel.app') || currentHost.includes('aureve');
+
+  const handleCopyHost = () => {
+    navigator.clipboard?.writeText(currentHost);
+    setCopiedDomain(true);
+    notify('Domain Copied', `${currentHost} copied to clipboard.`, 'success');
+    setTimeout(() => setCopiedDomain(false), 2500);
+  };
 
   const handleGoogle = async () => {
     setAuthErr('');
@@ -31,18 +60,22 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
     try {
       await loginWithGoogle();
       navigate(redirectTo);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Google sign-in failed.';
-      if (msg.includes('unauthorized-domain')) {
-        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'your-domain';
+    } catch (err: unknown) {
+      const errObj = err as { code?: string; message?: string };
+      const code = errObj?.code || '';
+      const msg = errObj?.message || 'Google sign-in failed.';
+      if (code === 'auth/unauthorized-domain' || msg.includes('unauthorized-domain')) {
+        setShowDomainNotice(true);
         setAuthErr(
           `Domain Authorization: Google OAuth popups require this domain ("${currentHost}") to be added to Firebase Console -> Authentication -> Settings -> Authorized domains. Please use normal Email & Password sign-in below to log in immediately without any domain restriction!`
         );
         notify(
-          'Domain Authorization Notice',
-          `Use Email/Password below or add ${currentHost} in Firebase Console.`,
+          'Domain Authorization Required',
+          `Use Email & Password below to log in immediately, or add ${currentHost} to Firebase Authorized Domains.`,
           'error'
         );
+      } else if (code === 'auth/popup-closed-by-user') {
+        setAuthErr('Sign-in popup closed before authorization completed. Please try again.');
       } else {
         setAuthErr(msg);
       }
@@ -54,28 +87,40 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthErr('');
+    setResetSent(false);
     setBusy(true);
     try {
       if (mode === 'login') {
         await loginWithEmail(email, password);
         navigate(redirectTo);
       } else if (mode === 'register') {
-        await registerWithEmail(name, email, password, phone);
+        await registerWithEmail(name || (isAdminRedirect ? 'Executive Admin' : 'Client'), email, password, phone);
         navigate(redirectTo);
       } else {
         await resetPassword(email);
-        setMode('login');
+        setResetSent(true);
+        notify('Reset Dispatched', `Password instructions dispatched to ${email}.`, 'success');
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Authentication error.';
-      if (msg.includes('operation-not-allowed')) {
+    } catch (err: unknown) {
+      const errObj = err as { code?: string; message?: string };
+      const code = errObj?.code || '';
+      const msg = errObj?.message || 'Authentication error.';
+      if (code === 'auth/operation-not-allowed' || msg.includes('operation-not-allowed')) {
         setAuthErr(
-          'Email/Password sign-in is disabled in Firebase Console -> Authentication -> Sign-in method. Please enable Email/Password provider in your Firebase project.'
+          'Email/Password sign-in is disabled in Firebase Console -> Authentication -> Sign-in method. Please ensure Email/Password provider is enabled.'
         );
-      } else if (msg.includes('user-not-found') || msg.includes('invalid-credential') || msg.includes('wrong-password')) {
-        setAuthErr('Invalid email or password. Please verify your credentials or create an account.');
-      } else if (msg.includes('email-already-in-use')) {
-        setAuthErr('An account with this email address already exists. Please sign in instead.');
+      } else if (
+        code === 'auth/user-not-found' ||
+        code === 'auth/invalid-credential' ||
+        code === 'auth/wrong-password' ||
+        msg.includes('invalid-credential') ||
+        msg.includes('wrong-password')
+      ) {
+        setAuthErr(
+          'Invalid email or password. If you originally signed in via Google and have not set an email password yet, please click "Forgot password?" below to create your password in seconds, or click "Register Account".'
+        );
+      } else if (code === 'auth/email-already-in-use' || msg.includes('email-already-in-use')) {
+        setAuthErr('An account with this email address already exists. Please sign in or use "Forgot password?" if needed.');
       } else {
         setAuthErr(msg);
       }
@@ -85,8 +130,24 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
     }
   };
 
+  const handleAdminQuickReset = async () => {
+    setAuthErr('');
+    setBusy(true);
+    try {
+      await resetPassword('razasphare@gmail.com');
+      setEmail('razasphare@gmail.com');
+      setResetSent(true);
+      notify('Recovery Dispatched', 'Password reset email sent to razasphare@gmail.com', 'success');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Could not send recovery link.';
+      setAuthErr(msg);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <div className="max-w-md mx-auto px-6 py-16 space-y-8">
+    <div className="max-w-md mx-auto px-6 py-16 space-y-6">
       <div className="text-center space-y-2">
         <div className="text-xs text-[#737b86]">AUREVÉ Client Portal</div>
         <h1 className="wide text-xl tracking-[0.15em]">
@@ -94,23 +155,130 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
         </h1>
       </div>
 
+      {/* Executive Admin Portal Notice */}
+      {isAdminRedirect && (
+        <div className="p-3.5 bg-[#f3f6fa] border border-[#16191f] text-xs space-y-2">
+          <div className="flex items-center gap-2 text-[#16191f] font-semibold tracking-wide">
+            <Shield className="w-4 h-4" />
+            <span>Executive Admin Portal</span>
+          </div>
+          <p className="text-[#555f6d] leading-relaxed">
+            Administrative access is strictly restricted to authorized executive administration (
+            <span className="font-mono text-[#16191f] font-medium">razasphare@gmail.com</span>).
+          </p>
+          {mode === 'login' && (
+            <button
+              type="button"
+              onClick={handleAdminQuickReset}
+              className="text-[11px] text-[#16191f] underline hover:opacity-80 pt-1 flex items-center gap-1.5"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Need to set or reset password for razasphare@gmail.com? Send reset link</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Domain Authorization Helper (Visible on error or on Vercel) */}
+      {(showDomainNotice || isVercelHost) && (
+        <div className="p-4 bg-[#fbf9f5] border border-[#e2d9cc] space-y-3 text-xs">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-[#9c6a1e] shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <div className="font-semibold text-[#16191f] tracking-wide">
+                Domain Authorization for Google Sign-In
+              </div>
+              <p className="text-[#655a4e] leading-relaxed">
+                Google OAuth popups require this domain (
+                <span className="font-mono font-medium text-[#16191f] bg-white px-1 py-0.5 border border-[#e2d9cc]">
+                  {currentHost}
+                </span>
+                ) to be added to Firebase Console Authorized Domains.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            <a
+              href="https://console.firebase.google.com/project/lofty-surfer-1wpgt/authentication/settings"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#16191f] text-white text-[11px] font-medium tracking-wider hover:opacity-90 transition-opacity"
+            >
+              <span>Firebase Settings</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+
+            <button
+              type="button"
+              onClick={handleCopyHost}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 border border-[#16191f] text-[#16191f] text-[11px] font-medium tracking-wider hover:bg-[#ede5d8] transition-colors"
+            >
+              {copiedDomain ? <Check className="w-3 h-3 text-[#2d7a4d]" /> : <Copy className="w-3 h-3" />}
+              <span>{copiedDomain ? 'Copied Domain!' : 'Copy Current Domain'}</span>
+            </button>
+          </div>
+
+          <div className="p-2.5 bg-white border border-[#e2d9cc] text-[11px] text-[#655a4e] space-y-1">
+            <div className="font-medium text-[#16191f]">Quick 10-Second Whitelist:</div>
+            <ol className="list-decimal list-inside space-y-0.5 leading-relaxed pl-1">
+              <li>Click <strong>Firebase Settings</strong> above.</li>
+              <li>Under <strong>Authorized domains</strong>, click <strong>Add domain</strong>.</li>
+              <li>Paste <code className="bg-[#f4efe6] px-1">{currentHost}</code> and click <strong>Save</strong>.</li>
+            </ol>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1 text-[11px] text-[#2d7a4d] font-medium">
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            <span>
+              Instant Access: Use normal Email &amp; Password below to log in immediately without any domain restriction!
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Primary Verified Google Authentication */}
       {mode !== 'reset' && (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={handleGoogle}
-          className="w-full py-3.5 bg-[#16191f] text-white wide text-[10px] tracking-[0.15em] hover:opacity-90 transition-opacity"
-        >
-          Continue with Google (Verified Access)
-        </button>
+        <div className="space-y-1.5">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleGoogle}
+            className="w-full py-3.5 bg-[#16191f] text-white wide text-[10px] tracking-[0.15em] hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+          >
+            <span>Continue with Google (Verified Access)</span>
+          </button>
+          {!showDomainNotice && !isVercelHost && (
+            <button
+              type="button"
+              onClick={() => setShowDomainNotice(true)}
+              className="text-[10px] text-[#737b86] underline hover:text-[#16191f] block text-center w-full"
+            >
+              Google OAuth domain authorization guide
+            </button>
+          )}
+        </div>
       )}
 
       {mode !== 'reset' && (
         <div className="flex items-center gap-3 text-xs text-[#a4adb8]">
           <div className="flex-1 h-px bg-[#e6ebf0]" />
-          <span>OR EMAIL CREDENTIALS</span>
+          <span>OR SIGN IN WITH EMAIL &amp; PASSWORD</span>
           <div className="flex-1 h-px bg-[#e6ebf0]" />
+        </div>
+      )}
+
+      {/* Password Reset Confirmation Alert */}
+      {resetSent && (
+        <div className="p-3.5 bg-[#f0f9f3] border border-[#2d7a4d] text-xs text-[#1e5636] space-y-1">
+          <div className="font-semibold flex items-center gap-1.5">
+            <Check className="w-4 h-4" />
+            <span>Recovery Email Dispatched</span>
+          </div>
+          <p className="leading-relaxed">
+            An email with password reset instructions has been dispatched to <strong>{email}</strong>.
+            Please check your inbox (and Spam folder) to set your password, then return here to sign in with Email &amp; Password!
+          </p>
         </div>
       )}
 
@@ -124,6 +292,7 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                placeholder="Full Name"
                 className="w-full border border-[#e6ebf0] px-3.5 py-2.5 text-xs outline-none focus:border-[#16191f]"
               />
             </div>
@@ -134,6 +303,7 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                placeholder="+92 3XX XXXXXXX"
                 className="w-full border border-[#e6ebf0] px-3.5 py-2.5 text-xs outline-none focus:border-[#16191f]"
               />
             </div>
@@ -147,36 +317,57 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@example.com"
             className="w-full border border-[#e6ebf0] px-3.5 py-2.5 text-xs outline-none focus:border-[#16191f]"
           />
         </div>
 
         {mode !== 'reset' && (
           <div>
-            <label className="block text-xs text-[#737b86] mb-1">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-[#737b86]">Password</label>
+              <button
+                type="button"
+                onClick={() => setMode('reset')}
+                className="text-[11px] text-[#737b86] hover:text-[#16191f] underline"
+              >
+                Forgot password?
+              </button>
+            </div>
             <input
               type="password"
               required
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
               className="w-full border border-[#e6ebf0] px-3.5 py-2.5 text-xs outline-none focus:border-[#16191f]"
             />
           </div>
         )}
 
         {authErr && (
-          <div className="p-3.5 bg-[#f3f6fa] border border-[#16191f] text-xs text-[#16191f] leading-relaxed">
-            {authErr}
+          <div className="p-3.5 bg-[#fbf1f1] border border-[#e04343] text-xs text-[#a32222] leading-relaxed space-y-1">
+            <div className="font-semibold flex items-center gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>Authentication Notice</span>
+            </div>
+            <p>{authErr}</p>
           </div>
         )}
 
         <button
           type="submit"
           disabled={busy}
-          className="w-full py-3.5 border border-[#16191f] text-[#16191f] wide text-[10px] tracking-[0.15em] hover:bg-[#f3f6fa]"
+          className="w-full py-3.5 border border-[#16191f] text-[#16191f] wide text-[10px] tracking-[0.15em] hover:bg-[#16191f] hover:text-white transition-colors"
         >
-          {mode === 'login' ? 'Sign In with Email' : mode === 'register' ? 'Register Account' : 'Send Recovery Link'}
+          {busy
+            ? 'Processing...'
+            : mode === 'login'
+            ? 'Sign In with Email & Password'
+            : mode === 'register'
+            ? 'Register Account'
+            : 'Send Recovery Link'}
         </button>
       </form>
 
