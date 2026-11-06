@@ -32,7 +32,20 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
       await loginWithGoogle();
       navigate(redirectTo);
     } catch (err) {
-      setAuthErr(err instanceof Error ? err.message : 'Google sign-in failed.');
+      const msg = err instanceof Error ? err.message : 'Google sign-in failed.';
+      if (msg.includes('unauthorized-domain')) {
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'your-domain';
+        setAuthErr(
+          `Domain Authorization: Google OAuth popups require this domain ("${currentHost}") to be added to Firebase Console -> Authentication -> Settings -> Authorized domains. Please use normal Email & Password sign-in below to log in immediately without any domain restriction!`
+        );
+        notify(
+          'Domain Authorization Notice',
+          `Use Email/Password below or add ${currentHost} in Firebase Console.`,
+          'error'
+        );
+      } else {
+        setAuthErr(msg);
+      }
     } finally {
       setBusy(false);
     }
@@ -57,8 +70,12 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
       const msg = err instanceof Error ? err.message : 'Authentication error.';
       if (msg.includes('operation-not-allowed')) {
         setAuthErr(
-          'Email/Password sign-in is currently disabled in Firebase Console -> Authentication -> Sign-in method. Use "Continue with Google" above for instant verified access, or enable Email/Password in Firebase Console.'
+          'Email/Password sign-in is disabled in Firebase Console -> Authentication -> Sign-in method. Please enable Email/Password provider in your Firebase project.'
         );
+      } else if (msg.includes('user-not-found') || msg.includes('invalid-credential') || msg.includes('wrong-password')) {
+        setAuthErr('Invalid email or password. Please verify your credentials or create an account.');
+      } else if (msg.includes('email-already-in-use')) {
+        setAuthErr('An account with this email address already exists. Please sign in instead.');
       } else {
         setAuthErr(msg);
       }

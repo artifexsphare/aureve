@@ -46,14 +46,19 @@ export const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
           <ProductVisual product={product} className="w-full h-full max-h-[300px]" />
         </Link>
 
-        {product.stock <= 0 && (
-          <span className="absolute bottom-3 left-4 text-[11px] text-[#737b86]">Sold Out</span>
-        )}
-        {product.stock > 0 && product.flashSale && (
+        {product.stock <= 0 ? (
+          <span className="absolute top-3 right-3 z-10 px-2.5 py-1 text-[10px] tracking-[0.14em] font-semibold bg-[#16191f] text-white uppercase shadow-sm">
+            Out of Stock
+          </span>
+        ) : product.stock <= (product.lowStockThreshold || 5) ? (
+          <span className="absolute top-3 right-3 z-10 px-2 py-0.5 text-[9px] tracking-[0.12em] font-semibold bg-amber-100 text-amber-900 uppercase border border-amber-300">
+            Low Stock ({product.stock})
+          </span>
+        ) : product.flashSale ? (
           <span className="absolute bottom-3 left-4 text-[11px] text-[#16191f]">
             Private Seasonal Offer
           </span>
-        )}
+        ) : null}
       </div>
 
       <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-3">
@@ -758,7 +763,19 @@ export const ProductDetailPage: React.FC = () => {
               <span>SKU: {product.sku}</span>
               <span>·</span>
               <span>
-                {product.stock > 0 ? `In Stock (${product.stock} available)` : 'Out of Stock'}
+                {product.stock <= 0 ? (
+                  <span className="font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 border border-rose-200 uppercase text-[10px] tracking-wider">
+                    Out of Stock
+                  </span>
+                ) : product.stock <= (product.lowStockThreshold || 5) ? (
+                  <span className="font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 border border-amber-200 uppercase text-[10px] tracking-wider">
+                    Low Stock — Only {product.stock} available
+                  </span>
+                ) : (
+                  <span className="text-emerald-700 font-medium">
+                    In Stock ({product.stock} available)
+                  </span>
+                )}
               </span>
             </div>
             <h1 className="wide text-xl md:text-2xl tracking-[0.14em] mt-2">{product.name}</h1>

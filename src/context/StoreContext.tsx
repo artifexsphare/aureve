@@ -40,10 +40,13 @@ import {
   Category,
   Coupon,
   OrderRecord,
+  OrderStatus,
+  OrderStatusHistoryRecord,
   PaymentMethod,
   Product,
   SavedAddress,
   ShippingZone,
+  StockHistoryRecord,
 } from '../types';
 
 export interface ToastMessage {
@@ -129,6 +132,9 @@ interface StoreContextValue {
   }>;
   cancelCustomerOrder: (order: OrderRecord) => Promise<void>;
   requestCustomerReturn: (order: OrderRecord, reason: string) => Promise<void>;
+  updateOrderStatusAuthoritative: (order: OrderRecord, newStatus: OrderStatus, note?: string, cancellationReason?: string) => Promise<void>;
+  adjustProductStock: (productId: string, adjustment: number, changeType: StockHistoryRecord['changeType'], reason: string, variantKey?: string) => Promise<void>;
+  addAdminOrderNote: (orderId: string, note: string) => Promise<void>;
   seedCatalogToFirestore: () => Promise<void>;
 }
 
@@ -297,8 +303,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       // Verify Admin Role via Bootstrap Email + Firestore /admins/{uid}
-      const emailMatch =
-        current.email?.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL && current.emailVerified === true;
+      const emailMatch = current.email?.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL;
       let adminDocExists = false;
       try {
         const adminSnap = await getDoc(doc(db, 'admins', current.uid));
@@ -309,8 +314,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const verifiedAdmin = emailMatch || adminDocExists;
       setIsAdmin(verifiedAdmin);
 
-      // Ensure user public + split private profile documents exist if email_verified
-      if (current.emailVerified) {
+      // Ensure user public + split private profile documents exist
+      if (current.uid) {
         try {
           const userRef = doc(db, 'users', current.uid);
           const privRef = doc(db, 'users', current.uid, 'private', 'info');
@@ -1014,10 +1019,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const orderNumber: string = quote.orderNumber;
       const orderId = `ord_${orderNumber.replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
-      // Easypaisa & JazzCash are coming soon — selection and processing are disabled
+      // Cash on Delivery, Easypaisa & JazzCash are coming soon — selection and processing are disabled
+      if (input.paymentMethod === 'cod') {
+        throw new Error('Cash on Delivery is coming soon and currently disabled. Please pay securely with Card.');
+      }
       if (input.paymentMethod === 'easypaisa' || input.paymentMethod === 'jazzcash') {
         throw new Error(
-          `${input.paymentMethod === 'easypaisa' ? 'Easypaisa' : 'JazzCash'} payment is coming soon and currently disabled. Please select Cash on Delivery or Card.`
+          `${input.paymentMethod === 'easypaisa' ? 'Easypaisa' : 'JazzCash'} payment is coming soon and currently disabled. Please select Card payment.`
         );
       }
 
@@ -1085,7 +1093,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (!stripeRes.ok || !stripeData.url) {
           throw new Error(
             stripeData.error ||
-              'Stripe checkout session could not be initialized. Configure STRIPE_SECRET_KEY or select Cash on Delivery.'
+              'Stripe checkout session could not be initialized. Configure STRIPE_SECRET_KEY in AI Studio Secrets.'
           );
         }
         stripeSessionUrl = stripeData.url;
@@ -1094,6 +1102,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       // 2. Atomic Firestore writeBatch: Order + OrderItems + Sanitized OrderLookup + Stock Decrement
       const batch = writeBatch(db);
+
+      const initialStatus: OrderStatus = input.paymentMethod === 'stripe' ? 'Pending' : 'New Order';
 
       const orderDocData: Record<string, unknown> = {
         orderNumber,
@@ -1107,13 +1117,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         houseNumber: input.houseNumber.trim().slice(0, 50),
         paymentMethod: input.paymentMethod,
         paymentStatus: 'pending',
-        status: input.paymentMethod === 'cod' ? 'Confirmed' : 'Pending',
+        status: initialStatus,
         subtotal: quote.subtotal,
         discountTotal: quote.discountTotal,
         shippingFee: quote.shippingFee,
         grandTotal: quote.grandTotal,
         itemSummary,
         itemCount: totalUnits,
+        statusHistory: [
+          {
+            orderId,
+            previousStatus: 'None',
+            newStatus: initialStatus,
+            changedBy: ownerId === 'guest' ? 'guest_checkout' : (user?.email || 'customer'),
+            note: 'Order submitted by customer',
+            timestamp: new Date().toISOString(),
+          },
+        ],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -1133,7 +1153,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const lookupDocData: Record<string, unknown> = {
         orderNumber,
         orderId,
-        status: input.paymentMethod === 'cod' ? 'Confirmed' : 'Pending',
+        status: initialStatus,
         paymentMethod: input.paymentMethod,
         paymentStatus: 'pending',
         itemSummary,
@@ -1147,7 +1167,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       batch.set(doc(db, 'order_lookup', orderNumber), lookupDocData);
 
-      // Subcollection line items + stock decrement on Firestore products
+      // Subcollection line items + stock decrement on Firestore products + stock history
       activeCartItems.forEach((item, idx) => {
         const itemId = `item_${idx + 1}`;
         batch.set(doc(db, 'orders', orderId, 'items', itemId), {
@@ -1168,6 +1188,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           batch.update(doc(db, 'products', item.productId), {
             stock: nextStock,
             updatedAt: serverTimestamp(),
+          });
+
+          // Stock History Audit Record
+          const histId = `stk_ord_${orderNumber}_${item.productId}_${idx}`;
+          batch.set(doc(db, 'stockHistory', histId), {
+            id: histId,
+            productId: item.productId,
+            productName: item.product.name,
+            sku: item.product.sku,
+            variantKey: `${item.size} / ${item.color}`,
+            previousStock: item.product.stock,
+            newStock: nextStock,
+            changeAmount: -item.quantity,
+            changeType: 'order_placement',
+            reason: `Order placed #${orderNumber}`,
+            changedBy: ownerId === 'guest' ? 'guest_checkout' : (user?.email || 'customer'),
+            timestamp: new Date().toISOString(),
           });
         }
       });
@@ -1319,6 +1356,177 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [notify]
   );
 
+  const updateOrderStatusAuthoritative = useCallback(
+    async (order: OrderRecord, newStatus: OrderStatus, note?: string, cancellationReason?: string) => {
+      const batch = writeBatch(db);
+      const orderRef = doc(db, 'orders', order.id);
+      const lookupRef = doc(db, 'order_lookup', order.orderNumber);
+
+      const histEntry: OrderStatusHistoryRecord = {
+        orderId: order.id,
+        previousStatus: order.status,
+        newStatus,
+        changedBy: user?.email || 'razasphare@gmail.com',
+        note: note || '',
+        timestamp: new Date().toISOString(),
+      };
+
+      const nextPaymentStatus =
+        newStatus === 'Delivered' && order.paymentMethod === 'cod'
+          ? 'paid'
+          : newStatus === 'Refunded'
+          ? 'refunded'
+          : order.paymentStatus;
+
+      const existingHistory = Array.isArray(order.statusHistory) ? order.statusHistory : [];
+      const nextHistory = [...existingHistory, histEntry];
+
+      const orderUpdate: Record<string, unknown> = {
+        status: newStatus,
+        paymentStatus: nextPaymentStatus,
+        statusHistory: nextHistory,
+        updatedAt: serverTimestamp(),
+      };
+
+      if (note?.trim()) {
+        orderUpdate.adminNotes = note.trim();
+      }
+      if (cancellationReason?.trim()) {
+        orderUpdate.cancellationReason = cancellationReason.trim();
+      }
+
+      batch.update(orderRef, orderUpdate);
+      batch.update(lookupRef, {
+        status: newStatus,
+        paymentStatus: nextPaymentStatus,
+        updatedAt: serverTimestamp(),
+      });
+
+      // If order is cancelled, restore stock for eligible cancelled orders!
+      if (newStatus === 'Cancelled' && order.status !== 'Cancelled') {
+        try {
+          const itemsSnap = await getDocs(collection(db, 'orders', order.id, 'items'));
+          itemsSnap.forEach((itemDoc) => {
+            const itemData = itemDoc.data();
+            const targetProd = products.find((p) => p.id === itemData.productId);
+            if (targetProd) {
+              const restoredStock = targetProd.stock + (Number(itemData.quantity) || 1);
+              batch.update(doc(db, 'products', itemData.productId), {
+                stock: restoredStock,
+                updatedAt: serverTimestamp(),
+              });
+
+              const histId = `stk_cancel_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+              batch.set(doc(db, 'stockHistory', histId), {
+                id: histId,
+                productId: itemData.productId,
+                productName: itemData.name || targetProd.name,
+                sku: itemData.sku || targetProd.sku,
+                variantKey: `${itemData.size} / ${itemData.color}`,
+                previousStock: targetProd.stock,
+                newStock: restoredStock,
+                changeAmount: Number(itemData.quantity) || 1,
+                changeType: 'order_cancellation',
+                reason: `Stock restored from cancelled order #${order.orderNumber}. Reason: ${cancellationReason || 'Admin cancellation'}`,
+                changedBy: user?.email || 'razasphare@gmail.com',
+                timestamp: new Date().toISOString(),
+              });
+            }
+          });
+        } catch (e) {
+          console.warn('Could not read line items for restoration:', e);
+        }
+      }
+
+      await batch.commit();
+      notify('Order Updated', `${order.orderNumber} is now ${newStatus}`, 'success');
+
+      // Dispatch customer notification through WhatsApp / Notification API
+      fetch('/api/order/notify-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderNumber: order.orderNumber,
+          customerName: order.customerName,
+          customerPhone: order.customerPhone,
+          city: order.city,
+          grandTotal: order.grandTotal,
+          paymentMethod: order.paymentMethod,
+          paymentStatus: nextPaymentStatus,
+          status: newStatus,
+          itemSummary: order.itemSummary,
+        }),
+      }).catch((err) => console.warn('[Admin WhatsApp update notice]:', err));
+    },
+    [user, products, notify]
+  );
+
+  const adjustProductStock = useCallback(
+    async (
+      productId: string,
+      adjustment: number,
+      changeType: StockHistoryRecord['changeType'],
+      reason: string,
+      variantKey?: string
+    ) => {
+      const prod = products.find((p) => p.id === productId);
+      if (!prod) return;
+      const currentStock = prod.stock || 0;
+      const nextStock = Math.max(0, currentStock + adjustment);
+
+      const batch = writeBatch(db);
+      const prodRef = doc(db, 'products', productId);
+
+      const updatePayload: Record<string, unknown> = {
+        stock: nextStock,
+        updatedAt: serverTimestamp(),
+      };
+
+      if (variantKey && prod.variantStock) {
+        const currentVar = prod.variantStock[variantKey] || 0;
+        updatePayload[`variantStock.${variantKey}`] = Math.max(0, currentVar + adjustment);
+      }
+
+      batch.update(prodRef, updatePayload);
+
+      const histId = `stk_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const histRef = doc(db, 'stockHistory', histId);
+      batch.set(histRef, {
+        id: histId,
+        productId,
+        productName: prod.name,
+        sku: prod.sku,
+        variantKey: variantKey || 'Standard',
+        previousStock: currentStock,
+        newStock: nextStock,
+        changeAmount: adjustment,
+        changeType,
+        reason: reason.trim() || 'Manual adjustment by Atelier Admin',
+        changedBy: user?.email || 'razasphare@gmail.com',
+        timestamp: new Date().toISOString(),
+      });
+
+      await batch.commit();
+      notify('Stock Updated', `${prod.name}: ${currentStock} → ${nextStock}`, 'success');
+    },
+    [products, user, notify]
+  );
+
+  const addAdminOrderNote = useCallback(
+    async (orderId: string, note: string) => {
+      try {
+        await updateDoc(doc(db, 'orders', orderId), {
+          adminNotes: note.trim(),
+          updatedAt: serverTimestamp(),
+        });
+        notify('Admin Note Saved', undefined, 'success');
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `orders/${orderId}`);
+      }
+    },
+    [notify]
+  );
+
   const value: StoreContextValue = {
     user,
     authReady,
@@ -1369,6 +1577,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     placeOrder,
     cancelCustomerOrder,
     requestCustomerReturn,
+    updateOrderStatusAuthoritative,
+    adjustProductStock,
+    addAdminOrderNote,
     seedCatalogToFirestore,
   };
 

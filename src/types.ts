@@ -10,6 +10,7 @@ export interface Product {
   salePrice?: number;
   stock: number;
   lowStockThreshold?: number;
+  variantStock?: Record<string, number>;
   published: boolean;
   featured?: boolean;
   bestSeller?: boolean;
@@ -90,16 +91,47 @@ export interface SavedAddress {
 }
 
 export type OrderStatus =
-  | 'Pending'
+  | 'New Order'
+  | 'Pending Confirmation'
   | 'Confirmed'
   | 'Processing'
   | 'Packed'
+  | 'Ready for Dispatch'
   | 'Shipped'
+  | 'Out for Delivery'
   | 'Delivered'
   | 'Cancelled'
-  | 'Return Requested';
+  | 'Return Requested'
+  | 'Returned'
+  | 'Refunded'
+  | 'Pending';
 
 export type PaymentMethod = 'cod' | 'stripe' | 'easypaisa' | 'jazzcash';
+
+export interface OrderStatusHistoryRecord {
+  id?: string;
+  orderId: string;
+  previousStatus: OrderStatus | string;
+  newStatus: OrderStatus;
+  changedBy: string;
+  note?: string;
+  timestamp: string;
+}
+
+export interface StockHistoryRecord {
+  id: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  variantKey?: string;
+  previousStock: number;
+  newStock: number;
+  changeAmount: number;
+  changeType: 'manual_add' | 'manual_reduce' | 'order_placement' | 'order_cancellation' | 'inventory_reset' | 'out_of_stock';
+  reason: string;
+  changedBy: string;
+  timestamp: string;
+}
 
 export interface OrderRecord {
   id: string;
@@ -124,6 +156,11 @@ export interface OrderRecord {
   grandTotal: number;
   itemSummary: string;
   itemCount: number;
+  adminNotes?: string;
+  cancellationReason?: string;
+  trackingNumber?: string;
+  courier?: string;
+  statusHistory?: OrderStatusHistoryRecord[];
   returnReason?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
@@ -158,3 +195,4 @@ export interface AdminMemberRecord {
   email: string;
   role: 'super_admin' | 'manager' | 'fulfillment';
 }
+

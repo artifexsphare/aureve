@@ -12,25 +12,26 @@ export interface WhatsAppOrderItem {
 }
 
 export interface WhatsAppOrderPayload {
-  orderId: string;
+  orderId?: string;
   orderNumber: string;
   customerName: string;
   customerPhone: string;
-  customerEmail: string;
-  city: string;
-  area: string;
-  street: string;
-  houseNumber: string;
+  customerEmail?: string;
+  city?: string;
+  area?: string;
+  street?: string;
+  houseNumber?: string;
   instructions?: string;
-  paymentMethod: string;
+  paymentMethod?: string;
   paymentStatus?: string;
   status?: string;
-  subtotal: number;
+  subtotal?: number;
   discountTotal?: number;
-  shippingFee: number;
-  grandTotal: number;
+  shippingFee?: number;
+  grandTotal?: number;
   couponCode?: string;
-  items: WhatsAppOrderItem[];
+  items?: WhatsAppOrderItem[];
+  itemSummary?: string;
   createdAt?: string;
 }
 
@@ -139,25 +140,25 @@ export function buildWhatsAppOrderMessage(order: WhatsAppOrderPayload, recipient
     : '• *Special Instructions:* None\n';
 
   return (
-    `⚜️ *AUREVÉ — NEW ATELIER ORDER* ⚜️\n\n` +
+    `⚜️ *AUREVÉ — ATELIER ORDER UPDATE* ⚜️\n\n` +
     `📦 *Order Reference:* ${order.orderNumber}\n` +
-    `🆔 *Order ID:* ${order.orderId}\n` +
+    (order.orderId ? `🆔 *Order ID:* ${order.orderId}\n` : '') +
     `📅 *Order Date & Time:* ${dateTimeStr}\n` +
     `🏷️ *Milestone:* ${orderMilestone}\n\n` +
     `👤 *CUSTOMER DETAILS*\n` +
     `• *Full Name:* ${order.customerName}\n` +
     `• *Contact / WhatsApp:* ${order.customerPhone}\n` +
-    `• *Email:* ${order.customerEmail}\n\n` +
+    (order.customerEmail ? `• *Email:* ${order.customerEmail}\n\n` : '\n') +
     `📍 *DELIVERY ADDRESS (PAKISTAN)*\n` +
-    `• *House / Flat:* ${order.houseNumber}\n` +
-    `• *Street / Road:* ${order.street}\n` +
-    `• *Area / Sector:* ${order.area}\n` +
-    `• *City:* ${order.city}, Pakistan\n` +
+    (order.houseNumber ? `• *House / Flat:* ${order.houseNumber}\n` : '') +
+    (order.street ? `• *Street / Road:* ${order.street}\n` : '') +
+    (order.area ? `• *Area / Sector:* ${order.area}\n` : '') +
+    `• *City:* ${order.city || 'Karachi'}, Pakistan\n` +
     instructionsLine +
-    `\n👗 *ORDERED PIECES (${order.items?.length || 0} item${order.items?.length === 1 ? '' : 's'})*\n` +
-    `${formattedItems || 'No line items listed'}\n\n` +
+    `\n👗 *ORDERED PIECES*\n` +
+    `${formattedItems || (order.itemSummary ? `• ${order.itemSummary}` : '• AUREVÉ Curated Collection Pieces')}\n\n` +
     `💰 *FINANCIAL SETTLEMENT*\n` +
-    `• *Subtotal:* Rs. ${Number(order.subtotal || 0).toLocaleString()}\n` +
+    (order.subtotal ? `• *Subtotal:* Rs. ${Number(order.subtotal).toLocaleString()}\n` : '') +
     discountLine +
     shippingLine +
     `• *Authoritative Grand Total:* *Rs. ${Number(order.grandTotal || 0).toLocaleString()}*\n` +
@@ -177,7 +178,7 @@ export async function dispatchWhatsAppOrderNotification(
     process.env.WHATSAPP_RECIPIENT_NUMBER || '03112281180'
   );
 
-  const dedupeKey = payload.orderNumber || payload.orderId;
+  const dedupeKey = String(payload.orderNumber || payload.orderId || `order_${Date.now()}`);
   const existing = notifiedOrdersMap.get(dedupeKey);
   if (existing) {
     return {

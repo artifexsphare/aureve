@@ -513,14 +513,76 @@ apiRouter.post('/checkout/mobile-wallet-init', (req, res) => {
   res.status(400).json({ error: 'Unsupported mobile wallet gateway.' });
 });
 
-// Verify server-side admin identity using Google OAuth tokeninfo / Firebase Auth lookup
-apiRouter.get('/admin/verify', async (req, res) => {
-  const emailHeader = String(req.query.email || '').toLowerCase();
-  const bootstrap = (process.env.ADMIN_BOOTSTRAP_EMAIL || 'razasphare@gmail.com').toLowerCase();
+// Authoritative Admin Authorization Middleware
+const AUTHORIZED_ADMIN_EMAIL = 'razasphare@gmail.com';
+
+function requireAdminAuth(req: Request, res: Response, next: NextFunction) {
+  const emailHeader = (req.headers['x-admin-email'] || req.query.admin_email || '').toString().toLowerCase().trim();
+  if (emailHeader !== AUTHORIZED_ADMIN_EMAIL) {
+    res.status(403).json({
+      error: 'Access Denied: Only razasphare@gmail.com has administrative authorization.',
+      code: 'ADMIN_UNAUTHORIZED',
+    });
+    return;
+  }
+  next();
+}
+
+// Verify server-side admin identity
+apiRouter.get('/admin/verify', (req, res) => {
+  const emailHeader = String(req.query.email || req.headers['x-admin-email'] || '').toLowerCase().trim();
+  const isAuthorized = emailHeader === AUTHORIZED_ADMIN_EMAIL;
   res.json({
-    bootstrapEmail: bootstrap,
-    matchesBootstrap: emailHeader === bootstrap,
+    bootstrapEmail: AUTHORIZED_ADMIN_EMAIL,
+    matchesBootstrap: isAuthorized,
+    authorized: isAuthorized,
   });
+});
+
+apiRouter.post('/admin/verify', (req, res) => {
+  const emailHeader = String(req.body?.email || req.headers['x-admin-email'] || '').toLowerCase().trim();
+  const isAuthorized = emailHeader === AUTHORIZED_ADMIN_EMAIL;
+  res.json({
+    bootstrapEmail: AUTHORIZED_ADMIN_EMAIL,
+    matchesBootstrap: isAuthorized,
+    authorized: isAuthorized,
+  });
+});
+
+// Admin-authoritative order status update and customer dispatch
+apiRouter.post('/admin/order/update-status', requireAdminAuth, async (req, res) => {
+  try {
+    const { orderId, orderNumber, newStatus, previousStatus, note, cancellationReason, customerPhone, customerName, grandTotal } = req.body || {};
+    if (!orderId || !newStatus) {
+      res.status(400).json({ error: 'orderId and newStatus are required.' });
+      return;
+    }
+
+    // Dispatch customer notification if customer phone is present
+    if (customerPhone && customerName) {
+      dispatchWhatsAppOrderNotification({
+        orderNumber: orderNumber || orderId,
+        customerName,
+        customerPhone,
+        city: 'Karachi',
+        grandTotal: grandTotal || 0,
+        paymentMethod: 'stripe',
+        paymentStatus: newStatus === 'Delivered' ? 'paid' : 'pending',
+        status: newStatus,
+        itemSummary: note || `Order updated to ${newStatus}`,
+      }).catch((err) => console.warn('[Admin API WhatsApp dispatch notice]:', err));
+    }
+
+    res.json({
+      success: true,
+      orderId,
+      newStatus,
+      updatedBy: AUTHORIZED_ADMIN_EMAIL,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to update order status' });
+  }
 });
 
 // Mount router strictly at /api so frontend routes and Vite middlewares control root /

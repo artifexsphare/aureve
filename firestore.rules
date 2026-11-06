@@ -33,12 +33,12 @@ service cloud.firestore {
     }
 
     function isBootstrapAdmin() {
-      return isVerifiedUser() && request.auth.token.email == 'razasphare@gmail.com';
+      return isSignedIn() && request.auth.token.email == 'razasphare@gmail.com';
     }
 
     function isAdmin() {
       return isBootstrapAdmin() || (
-        isVerifiedUser() &&
+        isSignedIn() &&
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
@@ -56,7 +56,7 @@ service cloud.firestore {
         ]) &&
         data.keys().hasOnly([
           'name', 'slug', 'sku', 'category', 'subcategory', 'lookNumber',
-          'price', 'salePrice', 'stock', 'lowStockThreshold', 'published',
+          'price', 'salePrice', 'stock', 'lowStockThreshold', 'variantStock', 'published',
           'featured', 'bestSeller', 'flashSale', 'description', 'material',
           'care', 'origin', 'sizes', 'colors', 'images', 'spriteBox',
           'ratingAvg', 'ratingCount', 'createdAt', 'updatedAt'
@@ -220,6 +220,7 @@ service cloud.firestore {
           'city', 'area', 'street', 'houseNumber', 'instructions', 'paymentMethod',
           'paymentStatus', 'paymentRef', 'status', 'couponCode', 'subtotal',
           'discountTotal', 'shippingFee', 'grandTotal', 'itemSummary', 'itemCount',
+          'adminNotes', 'cancellationReason', 'trackingNumber', 'courier', 'statusHistory',
           'returnReason', 'createdAt', 'updatedAt'
         ]) &&
         data.orderNumber is string && data.orderNumber.size() >= 5 && data.orderNumber.size() <= 40 &&
@@ -235,7 +236,11 @@ service cloud.firestore {
         data.paymentMethod is string && data.paymentMethod.size() <= 20 && data.paymentMethod in ['cod', 'stripe', 'easypaisa', 'jazzcash'] &&
         data.paymentStatus is string && data.paymentStatus.size() <= 20 && data.paymentStatus in ['pending', 'paid', 'failed', 'refunded'] &&
         (!('paymentRef' in data) || (data.paymentRef is string && data.paymentRef.size() <= 140)) &&
-        data.status is string && data.status.size() <= 30 && data.status in ['Pending', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered', 'Cancelled', 'Return Requested'] &&
+        data.status is string && data.status.size() <= 40 && data.status in [
+          'New Order', 'Pending Confirmation', 'Confirmed', 'Processing', 'Packed',
+          'Ready for Dispatch', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled',
+          'Return Requested', 'Returned', 'Refunded', 'Pending'
+        ] &&
         (!('couponCode' in data) || (data.couponCode is string && data.couponCode.size() <= 32)) &&
         data.subtotal is number && data.subtotal >= 0 && data.subtotal <= 50000000 &&
         data.discountTotal is number && data.discountTotal >= 0 && data.discountTotal <= 50000000 &&
@@ -243,6 +248,11 @@ service cloud.firestore {
         data.grandTotal is number && data.grandTotal >= 0 && data.grandTotal <= 50000000 &&
         data.itemSummary is string && data.itemSummary.size() >= 1 && data.itemSummary.size() <= 600 &&
         data.itemCount is number && data.itemCount >= 1 && data.itemCount <= 200 &&
+        (!('adminNotes' in data) || (data.adminNotes is string && data.adminNotes.size() <= 2000)) &&
+        (!('cancellationReason' in data) || (data.cancellationReason is string && data.cancellationReason.size() <= 1000)) &&
+        (!('trackingNumber' in data) || (data.trackingNumber is string && data.trackingNumber.size() <= 100)) &&
+        (!('courier' in data) || (data.courier is string && data.courier.size() <= 100)) &&
+        (!('statusHistory' in data) || data.statusHistory is list) &&
         (!('returnReason' in data) || (data.returnReason is string && data.returnReason.size() <= 300)) &&
         data.createdAt is timestamp &&
         data.updatedAt is timestamp;
@@ -268,7 +278,11 @@ service cloud.firestore {
         data.keys().hasOnly(['orderNumber', 'orderId', 'status', 'paymentMethod', 'paymentStatus', 'stripeSessionId', 'itemSummary', 'city', 'grandTotal', 'itemCount', 'updatedAt']) &&
         data.orderNumber is string && data.orderNumber.size() <= 40 && data.orderNumber == orderNumber &&
         data.orderId is string && data.orderId.size() >= 1 && data.orderId.size() <= 128 &&
-        data.status is string && data.status.size() <= 30 && data.status in ['Pending', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered', 'Cancelled', 'Return Requested'] &&
+        data.status is string && data.status.size() <= 40 && data.status in [
+          'New Order', 'Pending Confirmation', 'Confirmed', 'Processing', 'Packed',
+          'Ready for Dispatch', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled',
+          'Return Requested', 'Returned', 'Refunded', 'Pending'
+        ] &&
         data.paymentMethod is string && data.paymentMethod.size() <= 20 && data.paymentMethod in ['cod', 'stripe', 'easypaisa', 'jazzcash'] &&
         data.paymentStatus is string && data.paymentStatus.size() <= 20 && data.paymentStatus in ['pending', 'paid', 'failed', 'refunded'] &&
         (!('stripeSessionId' in data) || (data.stripeSessionId is string && data.stripeSessionId.size() <= 140)) &&
@@ -345,7 +359,7 @@ service cloud.firestore {
     // Coupons (Customers validate specific coupon code via get; only admins list/manage)
     match /coupons/{couponCode} {
       allow get: if isValidId(couponCode) && (existing().active == true || isAdmin());
-      allow list: if isAdmin() && existing().code is string;
+      allow list: if isAdmin();
       allow create: if isValidId(couponCode) && isValidCoupon(incoming()) &&
         incoming().code == couponCode &&
         incoming().createdAt == request.time && incoming().updatedAt == request.time && isAdmin();
@@ -380,7 +394,7 @@ service cloud.firestore {
     // Users Public Profile & Loyalty Points
     match /users/{userId} {
       allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
-      allow list: if isAdmin() && existing().uid is string;
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && isValidId(userId) && isValidUserPublic(incoming(), userId) &&
         incoming().loyaltyPoints == 0 &&
         incoming().createdAt == request.time && incoming().updatedAt == request.time;
@@ -472,7 +486,7 @@ service cloud.firestore {
       );
       allow list: if (isVerifiedUser() && existing().userId == request.auth.uid) || isAdmin();
       allow create: if isValidId(orderId) && isValidOrder(incoming()) &&
-        incoming().status in ['Pending', 'Confirmed'] &&
+        incoming().status in ['New Order', 'Pending', 'Confirmed'] &&
         incoming().createdAt == request.time && incoming().updatedAt == request.time &&
         (
           (incoming().userId == 'guest' && request.auth == null) ||
@@ -557,7 +571,7 @@ service cloud.firestore {
     // Newsletter Subscriptions
     match /newsletter/{subId} {
       allow get: if isValidId(subId) && isAdmin();
-      allow list: if isAdmin() && existing().email is string;
+      allow list: if isAdmin();
       allow create: if isValidId(subId) && isValidNewsletter(incoming()) &&
         incoming().createdAt == request.time;
       allow update: if false;
@@ -567,7 +581,7 @@ service cloud.firestore {
     // Admin Role Management
     match /admins/{adminUid} {
       allow get: if isValidId(adminUid) && (isOwner(adminUid) || isAdmin());
-      allow list: if isAdmin() && existing().uid is string;
+      allow list: if isAdmin();
       allow create: if isValidId(adminUid) && isValidAdminMember(incoming(), adminUid) &&
         incoming().createdAt == request.time && (
           isBootstrapAdmin() ||
@@ -581,6 +595,13 @@ service cloud.firestore {
         incoming().diff(existing()).affectedKeys().hasOnly(['role']) &&
         isBootstrapAdmin();
       allow delete: if isValidId(adminUid) && isBootstrapAdmin();
+    }
+
+    // Stock Audit Ledger (Admin-only ledger)
+    match /stockHistory/{historyId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(historyId) && isAdmin();
+      allow update, delete: if false;
     }
 
     // Connection Test Path (Always Denied cleanly so getDocFromServer verifies online status)

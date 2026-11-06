@@ -762,28 +762,33 @@ export const CheckoutPage: React.FC = () => {
             <h2 className="wide text-xs tracking-[0.16em]">02. Payment Method</h2>
             <div className="space-y-3">
               {/* Cash on Delivery */}
-              <label
-                className={`block p-4 border cursor-pointer transition-colors ${
-                  paymentMethod === 'cod' ? 'border-[#16191f] bg-[#f3f6fa]' : 'border-[#e6ebf0]'
-                }`}
+              <div
+                className="block p-4 border border-[#e6ebf0] bg-[#fafbfc] select-none cursor-not-allowed transition-colors"
+                aria-disabled="true"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <input
                       type="radio"
                       name="payment"
-                      checked={paymentMethod === 'cod'}
-                      onChange={() => setPaymentMethod('cod')}
-                      className="accent-[#16191f]"
+                      checked={false}
+                      disabled
+                      aria-disabled="true"
+                      className="accent-[#16191f] cursor-not-allowed opacity-40"
                     />
-                    <span className="text-xs font-medium">Cash on Delivery (Pakistan Insured Courier)</span>
+                    <span className="text-xs font-medium text-[#737b86]">Cash on Delivery (Pakistan Insured Courier)</span>
                   </div>
-                  <Truck className="w-4 h-4 text-[#737b86]" />
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-[#a4adb8]" />
+                    <span className="inline-flex items-center px-2 py-0.5 text-[9px] tracking-[0.14em] font-semibold bg-[#e6ebf0] text-[#16191f] uppercase border border-[#d6dde4]">
+                      COMING SOON
+                    </span>
+                  </div>
                 </div>
-                <p className="text-[11px] text-[#737b86] mt-1.5 pl-6">
-                  Settle upon physical inspection at your doorstep in Karachi with insured priority courier.
+                <p className="text-[11px] text-[#8c94a0] mt-1.5 pl-6">
+                  Cash on Delivery — Coming Soon
                 </p>
-              </label>
+              </div>
 
               {/* Stripe Card Gateway */}
               <label
