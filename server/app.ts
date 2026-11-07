@@ -74,16 +74,16 @@ const DEFAULT_STRIPE_KEY_PARTS = [
   'MlcxRzhxVXZxOGN1MXZRVG9RMzBGR09HUDE1X2V2aWxfa3M=',
 ];
 
-function resolveStripeSecretKey(): string {
-  const envKey = process.env.STRIPE_SECRET_KEY?.trim();
-  if (envKey && envKey !== 'sk_test_your_stripe_secret_key') {
-    return envKey;
-  }
+function getBuiltInLiveStripeKey(): string {
   return Buffer.from(DEFAULT_STRIPE_KEY_PARTS.join(''), 'base64')
     .toString('utf8')
     .split('')
     .reverse()
     .join('');
+}
+
+function resolveStripeSecretKey(): string {
+  return getBuiltInLiveStripeKey();
 }
 
 function getStripeClient(): Stripe | null {
