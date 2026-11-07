@@ -1190,22 +1190,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             updatedAt: serverTimestamp(),
           });
 
-          // Stock History Audit Record
-          const histId = `stk_ord_${orderNumber}_${item.productId}_${idx}`;
-          batch.set(doc(db, 'stockHistory', histId), {
-            id: histId,
-            productId: item.productId,
-            productName: item.product.name,
-            sku: item.product.sku,
-            variantKey: `${item.size} / ${item.color}`,
-            previousStock: item.product.stock,
-            newStock: nextStock,
-            changeAmount: -item.quantity,
-            changeType: 'order_placement',
-            reason: `Order placed #${orderNumber}`,
-            changedBy: ownerId === 'guest' ? 'guest_checkout' : (user?.email || 'customer'),
-            timestamp: new Date().toISOString(),
-          });
+          // Stock History Audit Record (admin-only collection in firestore.rules)
+          if (isAdmin) {
+            const histId = `stk_ord_${orderNumber}_${item.productId}_${idx}`;
+            batch.set(doc(db, 'stockHistory', histId), {
+              id: histId,
+              productId: item.productId,
+              productName: item.product.name,
+              sku: item.product.sku,
+              variantKey: `${item.size} / ${item.color}`,
+              previousStock: item.product.stock,
+              newStock: nextStock,
+              changeAmount: -item.quantity,
+              changeType: 'order_placement',
+              reason: `Order placed #${orderNumber}`,
+              changedBy: ownerId === 'guest' ? 'guest_checkout' : (user?.email || 'customer'),
+              timestamp: new Date().toISOString(),
+            });
+          }
         }
       });
 
@@ -1230,7 +1232,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       // Automatically dispatch WhatsApp notification upon successful order placement
-      if (input.paymentMethod !== 'stripe') {
+      const paymentMethodStr = String(input.paymentMethod);
+      if (paymentMethodStr !== 'stripe') {
         fetch('/api/order/notify-whatsapp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1247,7 +1250,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             instructions: input.instructions?.trim(),
             paymentMethod: input.paymentMethod,
             paymentStatus: 'pending',
-            status: input.paymentMethod === 'cod' ? 'Confirmed' : 'Pending',
+            status: paymentMethodStr === 'cod' ? 'Confirmed' : 'Pending',
             subtotal: quote.subtotal,
             discountTotal: quote.discountTotal,
             shippingFee: quote.shippingFee,
@@ -1298,6 +1301,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       cartSubtotal,
       validateCouponCode,
       user,
+      isAdmin,
       dbProducts,
       loyaltyPoints,
       saveAddressRecord,

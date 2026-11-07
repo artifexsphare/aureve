@@ -216,6 +216,12 @@ export const RunwayPage: React.FC = () => {
       }
     };
     const onWheel = (e: WheelEvent) => {
+      const isVertical = Math.abs(e.deltaY) >= Math.abs(e.deltaX);
+      if (isVertical) {
+        if (window.scrollY > 10) return;
+        if (e.deltaY > 0 && target >= N - 1) return;
+        if (e.deltaY < 0 && target <= 0) return;
+      }
       e.preventDefault();
       target += clamp(e.deltaY + e.deltaX, -120, 120) / 420;
       clearTimeout(wheelT);

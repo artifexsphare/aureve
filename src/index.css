@@ -169,6 +169,12 @@ textarea {
   position: relative;
   display: grid;
   grid-template-columns: 1fr calc(372 * var(--u));
+  height: calc(100svh - calc(88 * var(--u)));
+  min-height: 520px;
+}
+
+.mv-runway-lock > .mv-runway-main {
+  height: auto;
   min-height: 0;
 }
 
@@ -470,6 +476,8 @@ textarea:focus-visible {
   .mv-runway-main {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 190px;
+    height: calc(100svh - 48px);
+    min-height: 520px;
   }
   .mv-stage,
   .mv-model {

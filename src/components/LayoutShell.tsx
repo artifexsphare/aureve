@@ -35,7 +35,7 @@ export const LayoutShell: React.FC<{ children: React.ReactNode }> = ({ children 
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [submittingNews, setSubmittingNews] = useState(false);
 
-  const isRunway = location.pathname === '/';
+  const isRunway = location.pathname === '/runway';
   const activeBanner = banners.find((b) => b.active);
 
   const searchResults = quickQuery.trim()
@@ -76,7 +76,7 @@ export const LayoutShell: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <div className={isRunway ? 'mv-runway-lock' : 'min-h-screen flex flex-col bg-white text-[#16191f] w-full max-w-full overflow-x-hidden'}>
       {/* Slim Dismissible Promo Banner on non-runway storefront pages */}
-      {!isRunway && activeBanner && !bannerDismissed && (
+      {location.pathname !== '/' && !isRunway && activeBanner && !bannerDismissed && (
         <div className="bg-[#16191f] text-white px-4 h-9 flex items-center justify-between text-[11px] tracking-[0.06em] w-full">
           <div className="flex-1 text-center truncate">
             <span>{activeBanner.title}</span>
@@ -96,7 +96,7 @@ export const LayoutShell: React.FC<{ children: React.ReactNode }> = ({ children 
       )}
 
       {/* Exact AUREVÉ Header */}
-      <header className={`mv-header${isRunway ? ' runway-mode' : ' sticky top-0'}`}>
+      <header className={`mv-header${location.pathname === '/' || isRunway ? ' runway-mode' : ' sticky top-0'}`}>
         <div className="mv-r1">
           <Link className="mv-brand wide" to="/" aria-label="AUREVÉ">
             AUREVÉ
@@ -233,11 +233,11 @@ export const LayoutShell: React.FC<{ children: React.ReactNode }> = ({ children 
               <ul className="space-y-2.5 text-[#16191f]">
                 <li><Link to="/track-order" className="hover:underline">Track Your Order</Link></li>
                 <li><Link to="/contact" className="hover:underline">Contact Atelier</Link></li>
-                <li><Link to="/faq" className="hover:underline">FAQ & Sizing</Link></li>
+                <li><Link to="/faq" className="hover:underline">FAQ &amp; Sizing</Link></li>
                 <li><Link to="/shipping-policy" className="hover:underline">Pakistan Shipping Policy</Link></li>
-                <li><Link to="/return-policy" className="hover:underline">Returns & Exchanges</Link></li>
+                <li><Link to="/return-policy" className="hover:underline">Returns &amp; Exchanges</Link></li>
                 <li><Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link></li>
-                <li><Link to="/terms" className="hover:underline">Terms & Conditions</Link></li>
+                <li><Link to="/terms" className="hover:underline">Terms &amp; Conditions</Link></li>
               </ul>
             </div>
 
@@ -273,7 +273,7 @@ export const LayoutShell: React.FC<{ children: React.ReactNode }> = ({ children 
         </footer>
       )}
 
-      {/* Mobile Bottom Navigation (Non-Runway Pages, safe-area padded, stable touch targets) */}
+      {/* Mobile Bottom Navigation (Safe-area padded, stable touch targets) */}
       {!isRunway && (
         <nav
           aria-label="Mobile navigation"

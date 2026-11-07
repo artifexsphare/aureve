@@ -8,6 +8,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { LayoutShell } from './components/LayoutShell';
 import { RunwayPage } from './components/RunwayPage';
 import { StoreProvider } from './context/StoreContext';
+import { HomePage } from './pages/HomePage';
 import {
   AboutPage,
   AccountPage,
@@ -37,8 +38,9 @@ export default function App() {
       <StoreProvider>
         <LayoutShell>
           <Routes>
-            {/* Exact AUREVÉ Runway Depth Lookbook Homepage */}
-            <Route path="/" element={<RunwayPage />} />
+            {/* Complete AUREVÉ Luxury Fashion Storefront Homepage */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/runway" element={<RunwayPage />} />
 
             {/* Complete Shopping System */}
             <Route path="/shop" element={<ShopPage />} />

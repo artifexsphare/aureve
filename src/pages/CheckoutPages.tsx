@@ -1084,7 +1084,7 @@ export const OrderSuccessPage: React.FC = () => {
       <tr><th>Destination City</th><td>${String(lookupData?.city || 'Pakistan')}</td></tr>
       <tr><th>Selection</th><td>${String(lookupData?.itemSummary || `${lookupData?.itemCount || 1} piece(s)`)}</td></tr>
     </table>
-    <div class="tot">Authoritative Grand Total: $${Number(lookupData?.grandTotal || 0).toLocaleString()}</div>
+    <div class="tot">Authoritative Grand Total: Rs. ${Number(lookupData?.grandTotal || 0).toLocaleString()}</div>
     </body></html>`;
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
