@@ -206,15 +206,6 @@ export const LayoutShell: React.FC<{ children: React.ReactNode }> = ({ children 
                 Parisian couture craftsmanship with dedicated insured courier dispatch across
                 Karachi, Lahore, Islamabad, and nationwide Pakistan.
               </p>
-              <a
-                href="https://wa.me/923112281180?text=Hello%20AUREV%C3%89%20Client%20Care"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 text-xs wide tracking-[0.14em] text-[#16191f] border-b border-[#16191f] pb-1 pt-2 hover:text-[#737b86] touch-manipulation"
-              >
-                <MessageCircle className="w-3.5 h-3.5" />
-                WhatsApp Concierge (+92 311 2281180)
-              </a>
             </div>
 
             <div className="md:col-span-2 space-y-3 text-xs">
