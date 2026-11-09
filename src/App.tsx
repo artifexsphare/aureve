@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { LayoutShell } from './components/LayoutShell';
 import { RunwayPage } from './components/RunwayPage';
 import { StoreProvider } from './context/StoreContext';
@@ -37,6 +38,7 @@ export default function App() {
     <BrowserRouter>
       <StoreProvider>
         <LayoutShell>
+          <SpeedInsights />
           <Routes>
             {/* Complete AUREVÉ Luxury Fashion Storefront Homepage */}
             <Route path="/" element={<HomePage />} />
